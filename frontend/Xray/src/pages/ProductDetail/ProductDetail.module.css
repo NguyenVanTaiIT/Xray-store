@@ -1,0 +1,589 @@
+/* ProductDetail.module.css */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.detailContainer {
+  min-height: 100vh;
+  /* Updated to match Home.module.css background */
+  background: linear-gradient(135deg, #0a0a0a 0%, #111111 20%, #0a0a1c 40%, #1a1a1a 60%, #0d0d1b 80%, #000000 100%);
+  color: #fff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.breadcrumb {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  margin-top: 80px; 
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: #999;
+}
+
+.clickableBreadcrumb {
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.clickableBreadcrumb:hover {
+  color: #1E90FF; /* Changed from green to Dodger Blue */
+}
+
+.separator {
+  color: #666;
+}
+
+.current {
+  color: #1E90FF; /* Changed from green to Dodger Blue */
+  font-weight: 500;
+}
+
+.productDetail {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: start;
+}
+
+.imageSection {
+  position: sticky;
+  top: 20px;
+}
+
+.mainImage {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  background: linear-gradient(145deg, rgba(20,20,20,0.9), rgba(0,0,0,0.7));
+  border-radius: 24px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: 1px solid rgba(30,144,255,0.1); /* Changed from green to blue */
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.mainImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.mainImage:hover .mainImg {
+  transform: scale(1.05);
+}
+
+.badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(45deg, #FF4444, #FF6666); /* Kept red for badge */
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
+  z-index: 2;
+}
+
+.thumbnails {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.thumbnail {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  background: linear-gradient(145deg, rgba(20,20,20,0.9), rgba(0,0,0,0.7));
+}
+
+.thumbnail:hover {
+  border-color: rgba(30,144,255,0.4); /* Changed from green to blue */
+  transform: translateY(-2px);
+}
+
+.activeThumbnail {
+  border-color: #1E90FF !important; /* Changed from green to Dodger Blue */
+  box-shadow: 0 4px 12px rgba(30,144,255,0.3); /* Changed from green to blue */
+}
+
+.infoSection {
+  padding: 20px 0;
+}
+
+.productName {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  /* Updated gradient to blue tones */
+  background: linear-gradient(45deg, #fff, #6495ED); /* Changed from green to Cornflower Blue */
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.2;
+}
+
+.priceContainer {
+  display: flex;
+  align-items: baseline;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.currentPrice {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #6495ED; /* Changed from green to Cornflower Blue */
+  text-shadow: 0 2px 4px rgba(100,149,237,0.3); /* Changed from green to blue */
+}
+
+.originalPrice {
+  font-size: 1.2rem;
+  color: #999;
+  text-decoration: line-through;
+}
+
+.discount {
+  background: linear-gradient(45deg, #FF4444, #FF6666); /* Kept red for discount */
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.stockStatus {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 25px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.inStock {
+  color: #6495ED; /* Changed from green to Cornflower Blue */
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.outOfStock {
+  color: #FF4444; /* Kept red for out of stock */
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.warranty {
+  color: #6495ED; /* Changed from light green to Cornflower Blue */
+  font-size: 0.9rem;
+}
+
+.description {
+  margin-bottom: 30px;
+  line-height: 1.6;
+  color: #ccc;
+  font-size: 1.1rem;
+}
+
+.quickSpecs {
+  margin-bottom: 40px;
+}
+
+.quickSpecs h3 {
+  font-size: 1.3rem;
+  margin-bottom: 15px;
+  color: #1E90FF; /* Changed from green to Dodger Blue */
+}
+
+.specsList {
+  display: grid;
+  gap: 12px;
+}
+
+.specItem {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
+  padding: 12px;
+  background: linear-gradient(145deg, rgba(20,20,20,0.6), rgba(0,0,0,0.4));
+  border-radius: 12px;
+  border: 1px solid rgba(30,144,255,0.1); /* Changed from green to blue */
+}
+
+.specLabel {
+  font-weight: 600;
+  color: #6495ED; /* Changed from light green to Cornflower Blue */
+}
+
+.specValue {
+  color: #fff;
+}
+
+.purchaseSection {
+  padding: 30px 0;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.quantitySelector {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.quantitySelector label {
+  font-weight: 600;
+  color: #6495ED; /* Changed from light green to Cornflower Blue */
+}
+
+.quantityControls {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(145deg, rgba(20,20,20,0.9), rgba(0,0,0,0.7));
+  border-radius: 12px;
+  border: 1px solid rgba(30,144,255,0.2); /* Changed from green to blue */
+  overflow: hidden;
+}
+
+.quantityBtn {
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  color: #1E90FF; /* Changed from green to Dodger Blue */
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quantityBtn:hover:not(:disabled) {
+  background: rgba(30,144,255,0.1); /* Changed from green to blue */
+}
+
+.quantityBtn:disabled {
+  color: #666;
+  cursor: not-allowed;
+}
+
+.quantityValue {
+  width: 60px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #fff;
+  border-left: 1px solid rgba(30,144,255,0.2); /* Changed from green to blue */
+  border-right: 1px solid rgba(30,144,255,0.2); /* Changed from green to blue */
+}
+
+.actionButtons {
+  display: flex;
+  gap: 15px;
+}
+
+.buyNowBtn {
+  flex: 2;
+  background: linear-gradient(45deg, #1E90FF, #4169E1); /* Changed from green to blue */
+  color: #fff; /* Changed to white for better contrast */
+  border: none;
+  border-radius: 12px;
+  padding: 16px 24px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+  box-shadow: 0 4px 15px rgba(30,144,255,0.3); /* Changed from green to blue */
+}
+
+.buyNowBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.buyNowBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(30,144,255,0.4); /* Changed from green to blue */
+}
+
+.buyNowBtn:hover::before {
+  left: 100%;
+}
+
+.addToCartBtn {
+  flex: 1;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px;
+  padding: 16px 24px;
+  color: #6495ED; /* Changed from light green to Cornflower Blue */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.addToCartBtn:hover {
+  background: rgba(255,255,255,0.2);
+  transform: translateY(-2px);
+  border-color: rgba(30,144,255,0.4); /* Changed from green to blue */
+}
+
+.addToCartBtn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.btnIcon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s ease;
+}
+
+.buyNowBtn:hover .btnIcon {
+  transform: translateX(5px);
+}
+
+.detailTabs {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+}
+
+.tabContent {
+  display: grid;
+  gap: 40px;
+}
+
+.specsDetail {
+  background: linear-gradient(145deg, rgba(20,20,20,0.9), rgba(0,0,0,0.7));
+  border-radius: 24px;
+  padding: 30px;
+  border: 1px solid rgba(30,144,255,0.1); /* Changed from green to blue */
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.specsDetail h2 {
+  font-size: 2rem;
+  margin-bottom: 25px;
+  color: #1E90FF; /* Changed from green to Dodger Blue */
+  text-align: center;
+}
+
+.specsGrid {
+  display: grid;
+  gap: 15px;
+}
+
+.specRow {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  align-items: center;
+  padding: 15px;
+  background: linear-gradient(145deg, rgba(30,30,30,0.6), rgba(10,10,10,0.4));
+  border-radius: 12px;
+  border: 1px solid rgba(30,144,255,0.1); /* Changed from green to blue */
+  transition: all 0.3s ease;
+}
+
+.specRow:hover {
+  border-color: rgba(30,144,255,0.3); /* Changed from green to blue */
+  transform: translateX(5px);
+}
+
+.specKey {
+  font-weight: 600;
+  color: #6495ED; /* Changed from light green to Cornflower Blue */
+}
+
+/* Styles for the new features description paragraph */
+.features p { /* Targeting the paragraph inside the .features div */
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #ccc;
+  padding: 15px; /* Add some padding around the text */
+  background: linear-gradient(145deg, rgba(30,30,30,0.6), rgba(10,10,10,0.4)); /* Match background to specRow/featureItem */
+  border-radius: 12px;
+  border: 1px solid rgba(30,144,255,0.1); /* Match border to specRow/featureItem */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.features {
+  background: linear-gradient(145deg, rgba(20,20,20,0.9), rgba(0,0,0,0.7));
+  border-radius: 24px;
+  padding: 30px;
+  border: 1px solid rgba(30,144,255,0.1); /* Changed from green to blue */
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.features h2 {
+  font-size: 2rem;
+  margin-bottom: 25px;
+  color: #1E90FF; /* Changed from green to Dodger Blue */
+  text-align: center;
+}
+
+/* Removed .featuresList, .featureItem, .featureIcon styles as they are no longer used */
+/* .featuresList {
+  list-style: none;
+  display: grid;
+  gap: 15px;
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: linear-gradient(145deg, rgba(30,30,30,0.6), rgba(10,10,10,0.4));
+  border-radius: 12px;
+  border: 1px solid rgba(0,255,0,0.1);
+  transition: all 0.3s ease;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+.featureItem:hover {
+  border-color: rgba(0,255,0,0.3);
+  transform: translateX(5px);
+}
+
+.featureIcon {
+  color: #00FF00;
+  font-weight: bold;
+  font-size: 1.2rem;
+} */
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .productDetail {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  
+  .imageSection {
+    position: static;
+  }
+  
+  .productName {
+    font-size: 2rem;
+  }
+  
+  .currentPrice {
+    font-size: 1.8rem;
+  }
+  
+  .specRow,
+  .specItem {
+    grid-template-columns: 150px 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .productDetail {
+    padding: 0 15px 30px;
+  }
+  
+  .breadcrumb {
+    padding: 15px;
+    font-size: 0.8rem;
+  }
+  
+  .productName {
+    font-size: 1.8rem;
+  }
+  
+  .currentPrice {
+    font-size: 1.5rem;
+  }
+  
+  .thumbnails {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .actionButtons {
+    flex-direction: column;
+  }
+  
+  .buyNowBtn,
+  .addToCartBtn {
+    flex: 1;
+  }
+  
+  .specRow,
+  .specItem {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    text-align: left;
+  }
+  
+  .specLabel {
+    font-size: 0.9rem;
+  }
+  
+  .specValue {
+    font-size: 0.9rem;
+  }
+  
+  .detailTabs {
+    padding: 30px 15px 60px;
+  }
+  
+  .specsDetail,
+  .features {
+    padding: 20px;
+  }
+  
+  .specsDetail h2,
+  .features h2 {
+    font-size: 1.5rem;
+  }
+}

@@ -1,0 +1,14 @@
+.footer {
+  position: relative;
+  z-index: 1;
+  padding: 40px 20px;
+  background: rgba(0,0,0,0.2);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.footerContent {
+  text-align: center;
+  color: #6495ED;
+  max-width: 1200px;
+  margin: auto;
+}
