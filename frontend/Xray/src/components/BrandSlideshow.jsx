@@ -1,8 +1,13 @@
 // BrandSlideshow.jsx
 import React, { useEffect, useRef } from 'react';
 import styles from './BrandSlideshow.module.css';
-
-const MSI = '/msi.png';
+import asusLogo from '../assets/asus.png';
+import alienLogo from '../assets/alien.png';
+import razerLogo from '../assets/razer.png';
+import msiLogo from '../assets/msi.png'; 
+import acerLogo from '../assets/acer.png';
+import lenovoLogo from '../assets/Lenovo-Legion.avif';
+import aorusLogo from '../assets/aorus.png'; 
 
 const BrandSlideshow = () => {
   const statsRef = useRef([]);
@@ -30,37 +35,37 @@ const BrandSlideshow = () => {
   const brands = [
   {
     name: "ASUS ROG",
-    logo: "/asus.png",
+    logo: asusLogo,
     tagline: "Republic of Gamers"
   },
   {
     name: "MSI Gaming",
-    logo: MSI,
+    logo: msiLogo,
     tagline: "Gaming Redefined"
   },
   {
     name: "Acer Predator",
-    logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTw75gAuXijhZE9_tSHkAOc2oaOzAm71XF6nQ&s",
+    logo: acerLogo,
     tagline: "Unleash Your Gaming Potential"
   },
   {
     name: "Lenovo Legion",
-    logo: "https://static1.xdaimages.com/wordpress/wp-content/uploads/2020/05/Lenovo-Legion.jpg",
+    logo: lenovoLogo,
     tagline: "Stylish Outside, Savage Inside"
   },
   {
     name: "Dell Alienware",
-    logo: "/alien.png",
+    logo: alienLogo,
     tagline: "Born to Game"
   },
   {
     name: "Razer",
-    logo: "/razer.png",
+    logo: razerLogo,
     tagline: "For Gamers. By Gamers."
   },
   {
     name: "Gigabyte AORUS",
-    logo: "https://www.vortez.net/articles_file/27334_aorus-logo.png",
+    logo: aorusLogo,
     tagline: "Team Up. Fight On."
   }
 ];

@@ -3,15 +3,37 @@ import styles from "./Header.module.css";
 import { useNavigate } from 'react-router-dom';
 import { useContext } from 'react';
 import { CartContext } from '../../contexts/CartContext';
-import { UserContext } from '../../contexts/UserContext'; // Thêm import
-import { removeCartItem } from '../../services/cartService';
-import { logoutUser } from '../../services/userService'; // Bỏ getProfile
+import { UserContext } from '../../contexts/UserContext';
 import { toast } from 'react-toastify';
+import logo from '../../assets/logo.png';
+import debounce from 'lodash/debounce';
+import { searchProducts } from '../../services/productService';
+
+const getInitial = (user) => {
+    const source = user.name || user.email || 'U';
+    return source.trim().charAt(0).toUpperCase();
+};
+
+const AvatarFallback = ({ user, size = 32 }) => {
+    const initial = getInitial(user);
+    return (
+        <div
+            className={styles.avatarFallback}
+            style={{
+                width: size,
+                height: size,
+                fontSize: size * 0.5,
+            }}
+        >
+            {initial}
+        </div>
+    );
+};
 
 export default function Header() {
     const navigate = useNavigate();
     const { cartItems, refreshCart } = useContext(CartContext);
-    const { isAuthenticated, user, logout } = useContext(UserContext); // Sử dụng UserContext
+    const { isAuthenticated, user, logout } = useContext(UserContext);
 
     // States
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -20,37 +42,17 @@ export default function Header() {
     const [showCartPreview, setShowCartPreview] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
-    const [searchHistory, setSearchHistory] = useState(["iPhone 15", "MacBook Pro", "AirPods"]);
+    const [searchHistory, setSearchHistory] = useState([]);
+    const [filteredSuggestions, setFilteredSuggestions] = useState([]);
 
     // Refs
     const searchRef = useRef(null);
     const userMenuRef = useRef(null);
     const cartPreviewRef = useRef(null);
 
-    // Mock search suggestions
-    const searchSuggestions = [
-        "iPhone 15 Pro Max", "MacBook Pro M3", "iPad Air", "Apple Watch",
-        "AirPods Max", "iMac 24inch", "Mac Studio", "HomePod mini"
-    ];
-
-    const handleRemoveItem = async (id) => {
-        try {
-            await removeCartItem(id);
-            await refreshCart();
-            toast.success('Đã xóa sản phẩm khỏi giỏ hàng');
-        } catch (err) {
-            if (err.response?.status === 401) {
-                navigate('/login');
-                toast.error('Vui lòng đăng nhập để xóa sản phẩm');
-            } else {
-                toast.error('Lỗi khi xóa sản phẩm');
-            }
-        }
-    };
-
     // Lấy lịch sử tìm kiếm từ localStorage
     useEffect(() => {
-        const savedHistory = JSON.parse(localStorage.getItem('searchHistory')) || ["iPhone 15", "MacBook Pro", "AirPods"];
+        const savedHistory = JSON.parse(localStorage.getItem('searchHistory')) || [];
         setSearchHistory(savedHistory);
     }, []);
 
@@ -118,15 +120,42 @@ export default function Header() {
                 setSearchHistory(newHistory);
                 localStorage.setItem('searchHistory', JSON.stringify(newHistory));
             }
-            console.log('Searching for:', searchQuery);
+            navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
             setShowSearch(false);
-            setSearchQuery("");
+            setSearchQuery('');
         }
     };
 
-    const filteredSuggestions = searchSuggestions.filter(item =>
-        item.toLowerCase().includes(searchQuery.toLowerCase())
-    ).slice(0, 5);
+    const handleSuggestionSearch = debounce(async (query) => {
+        try {
+            if (!query || query.trim() === '') {
+                setFilteredSuggestions([]);
+                return;
+            }
+            console.log('API call with query:', query);
+            const res = await searchProducts(query);
+            console.log('API response in Header:', res.data);
+            setFilteredSuggestions(res.data || []);
+        } catch (err) {
+            console.error('Lỗi gợi ý sản phẩm:', err);
+            setFilteredSuggestions([]);
+        }
+    }, 300);
+
+    useEffect(() => {
+        if (searchQuery && searchQuery.trim() !== '') {
+            console.log('Sending search query:', searchQuery);
+            handleSuggestionSearch(searchQuery);
+        } else {
+            setFilteredSuggestions([]);
+        }
+    }, [searchQuery]);
+
+    useEffect(() => {
+        return () => {
+            handleSuggestionSearch.cancel(); // cleanup lodash debounce
+        };
+    }, []);
 
     // Cart calculations
     const cartItemCount = useMemo(() => cartItems.reduce((total, item) => total + item.quantity, 0), [cartItems]);
@@ -146,7 +175,6 @@ export default function Header() {
             setShowUserMenu(false);
             setShowMobileMenu(false);
             navigate('/login');
-            toast.success('Đã đăng xuất');
         } catch (err) {
             console.error('Logout error:', err);
             toast.error('Lỗi khi đăng xuất');
@@ -154,14 +182,13 @@ export default function Header() {
     };
 
     return (
-        // Giữ nguyên phần JSX, chỉ thay thế isLoggedIn bằng isAuthenticated và userData bằng user
         <>
             <nav className={`${styles.navbar} ${scrolled ? styles.scrolled : ''}`}>
                 <div className={styles.navContainer}>
                     {/* Logo */}
                     <div className={styles.navLogo} onClick={() => navigate('/')}>
                         <img
-                            src="./1.png"
+                            src={logo}
                             alt="Logo"
                             className={`${styles.headerLogo} ${scrolled ? styles.logoSmall : ''}`}
                         />
@@ -181,7 +208,12 @@ export default function Header() {
                         >
                             Sản phẩm
                         </button>
-                        <a href="#" className={styles.navLink}>Giới thiệu</a>
+                        <button
+                            className={styles.navLink}
+                            onClick={() => navigate('/about-us')}
+                        >
+                            Giới thiệu
+                        </button>
                         <a href="#" className={styles.navLink}>Liên hệ</a>
                     </div>
 
@@ -206,7 +238,11 @@ export default function Header() {
                                             type="text"
                                             placeholder="Tìm kiếm sản phẩm..."
                                             value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                setSearchQuery(value);
+                                                handleSuggestionSearch(value);
+                                            }}
                                             className={styles.searchInput}
                                             autoFocus
                                         />
@@ -222,42 +258,50 @@ export default function Header() {
                                         {searchQuery ? (
                                             <div className={styles.searchSection}>
                                                 <h4>Gợi ý sản phẩm</h4>
-                                                {filteredSuggestions.map((suggestion) => (
-                                                    <button
-                                                        key={suggestion}
-                                                        className={styles.searchItem}
-                                                        onClick={() => {
-                                                            setSearchQuery(suggestion);
-                                                            handleSearchSubmit({ preventDefault: () => { } });
-                                                        }}
-                                                    >
-                                                        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke="currentColor">
-                                                            <circle cx="11" cy="11" r="8" />
-                                                            <path d="m21 21-4.35-4.35" />
-                                                        </svg>
-                                                        {suggestion}
-                                                    </button>
-                                                ))}
+                                                {filteredSuggestions.length > 0 ? (
+                                                    filteredSuggestions.map((suggestion, index) => (
+                                                        <button
+                                                            key={index}
+                                                            className={styles.searchItem}
+                                                            onClick={() => {
+                                                                setSearchQuery(suggestion);
+                                                                handleSearchSubmit({ preventDefault: () => {} });
+                                                            }}
+                                                        >
+                                                            <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke="currentColor">
+                                                                <circle cx="11" cy="11" r="8" />
+                                                                <path d="m21 21-4.35-4.35" />
+                                                            </svg>
+                                                            {suggestion}
+                                                        </button>
+                                                    ))
+                                                ) : (
+                                                    <p>Không tìm thấy sản phẩm</p>
+                                                )}
                                             </div>
                                         ) : (
                                             <div className={styles.searchSection}>
                                                 <h4>Tìm kiếm gần đây</h4>
-                                                {searchHistory.map((item) => (
-                                                    <button
-                                                        key={item}
-                                                        className={styles.searchItem}
-                                                        onClick={() => {
-                                                            setSearchQuery(item);
-                                                            handleSearchSubmit({ preventDefault: () => { } });
-                                                        }}
-                                                    >
-                                                        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke="currentColor">
-                                                            <path d="M12 8v4l3 3" />
-                                                            <circle cx="12" cy="12" r="10" />
-                                                        </svg>
-                                                        {item}
-                                                    </button>
-                                                ))}
+                                                {searchHistory.length > 0 ? (
+                                                    searchHistory.map((item) => (
+                                                        <button
+                                                            key={item}
+                                                            className={styles.searchItem}
+                                                            onClick={() => {
+                                                                setSearchQuery(item);
+                                                                handleSearchSubmit({ preventDefault: () => {} });
+                                                            }}
+                                                        >
+                                                            <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke="currentColor">
+                                                                <path d="M12 8v4l3 3" />
+                                                                <circle cx="12" cy="12" r="10" />
+                                                            </svg>
+                                                            {item}
+                                                        </button>
+                                                    ))
+                                                ) : (
+                                                    <p>Không có lịch sử tìm kiếm</p>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -272,11 +316,15 @@ export default function Header() {
                                 onClick={() => setShowUserMenu(!showUserMenu)}
                             >
                                 {isAuthenticated && user ? (
-                                    <img
-                                        src={user.avatar || './default-avatar.jpg'}
-                                        alt={user.name || 'User'}
-                                        className={styles.userAvatar}
-                                    />
+                                    user.avatar ? (
+                                        <img
+                                            src={user.avatar}
+                                            alt={user.name || 'User'}
+                                            className={styles.userAvatar}
+                                        />
+                                    ) : (
+                                        <AvatarFallback user={user} size={32} />
+                                    )
                                 ) : (
                                     <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke="currentColor">
                                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -290,16 +338,33 @@ export default function Header() {
                                     {isAuthenticated && user ? (
                                         <>
                                             <div className={styles.userInfo}>
-                                                <img
-                                                    src={user.avatar || './default-avatar.jpg'}
-                                                    alt={user.name || 'User'}
-                                                    className={styles.userAvatarLarge}
-                                                />
+                                                {user.avatar ? (
+                                                    <img
+                                                        src={user.avatar}
+                                                        alt={user.name || 'User'}
+                                                        className={styles.userAvatarLarge}
+                                                    />
+                                                ) : (
+                                                    <AvatarFallback user={user} size={48} />
+                                                )}
                                                 <div>
                                                     <h4>{user.name || 'Người dùng'}</h4>
                                                     <p>{user.email || 'email@example.com'}</p>
                                                 </div>
                                             </div>
+                                            {user.role === 'admin' && (
+                                                <button
+                                                    className={styles.menuItem}
+                                                    onClick={() => navigate('/admin')}
+                                                >
+                                                    <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke="currentColor">
+                                                        <path d="M12 14l9-5-9-5-9 5 9 5z" />
+                                                        <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                                                        <path d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                                                    </svg>
+                                                    Vào trang admin
+                                                </button>
+                                            )}
                                             <div className={styles.menuDivider}></div>
                                             <button
                                                 className={styles.menuItem}
@@ -311,13 +376,16 @@ export default function Header() {
                                                 </svg>
                                                 Thông tin cá nhân
                                             </button>
-                                            <a href="#" className={styles.menuItem}>
+                                            <button
+                                                className={styles.menuItem}
+                                                onClick={() => navigate('/profile?tab=orders')}
+                                            >
                                                 <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke="currentColor">
                                                     <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
                                                     <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
                                                 </svg>
                                                 Đơn hàng của tôi
-                                            </a>
+                                            </button>
                                             <div className={styles.menuDivider}></div>
                                             <button
                                                 className={styles.menuItem}
@@ -400,7 +468,6 @@ export default function Header() {
                                                     <h5>{item.name}</h5>
                                                     <p>{formatPrice(item.price)} x {item.quantity}</p>
                                                 </div>
-                                                <button className={styles.cartItemRemove} onClick={() => handleRemoveItem(item._id)}>×</button>
                                             </div>
                                         ))}
                                     </div>
@@ -453,10 +520,14 @@ export default function Header() {
                             <div className={styles.mobileMenuHeader}>
                                 {isAuthenticated && user ? (
                                     <div className={styles.mobileUserInfo}>
-                                        <img
-                                            src={user.avatar || './default-avatar.jpg'}
-                                            alt={user.name || 'User'}
-                                        />
+                                        {user.avatar ? (
+                                            <img
+                                                src={user.avatar}
+                                                alt={user.name || 'User'}
+                                            />
+                                        ) : (
+                                            <AvatarFallback user={user} size={40} />
+                                        )}
                                         <div>
                                             <h4>{user.name || 'Người dùng'}</h4>
                                             <p>{user.email || 'email@example.com'}</p>
@@ -502,7 +573,15 @@ export default function Header() {
                                     >
                                         Thông tin cá nhân
                                     </button>
-                                    <a href="#" className={styles.mobileActionLink}>Đơn hàng của tôi</a>
+                                    <button
+                                        className={styles.mobileActionLink}
+                                        onClick={() => {
+                                            navigate('/profile?tab=orders');
+                                            setShowMobileMenu(false);
+                                        }}
+                                    >
+                                        Đơn hàng của tôi
+                                    </button>
                                     <button
                                         className={styles.mobileActionLink}
                                         onClick={handleLogout}

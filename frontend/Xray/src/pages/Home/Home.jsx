@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import styles from './Home.module.css';
 import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
@@ -7,27 +7,119 @@ import { useNavigate } from 'react-router-dom';
 import Intro from '../Introduction/Intro';
 import BrandSlideshow from "../../components/BrandSlideshow.jsx";
 import { fetchProducts } from '../../services/productService.js';
-
+import { CartContext } from '../../contexts/CartContext';
+import { addToCartService as addToCart } from '../../services/cartService';
+import { toast } from 'react-toastify';
 
 export default function Home() {
   const navigate = useNavigate();
+  const { refreshCart } = useContext(CartContext);
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
   const fetchFeaturedProducts = async () => {
+    setLoading(true);
     try {
       const data = await fetchProducts();
-      setProducts(data.slice(0, 4));
+      console.log('Home - Fetched products:', data);
+      setProducts(Array.isArray(data.products) ? data.products.slice(0, 4) : []);
     } catch (err) {
       console.error('Error fetching products:', err);
+      setError(err.message || 'Không thể tải sản phẩm');
+    } finally {
+      setLoading(false);
     }
   };
   fetchFeaturedProducts();
 }, []);
 
-  const handleProductClick = (product) => {
-    navigate(`/product-detail/${product._id}`);
+  const handleProductClick = (productId) => {
+    navigate(`/product-detail/${productId}`);
   };
+
+  const handleAddToCart = async (product, event) => {
+    event.stopPropagation();
+    try {
+      const productId = String(product._id).trim();
+      console.log('Home - Adding product to cart:', {
+        productId,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        originalId: product._id,
+        idType: typeof product._id
+      });
+      if (!/^[0-9a-fA-F]{24}$/.test(productId)) {
+        throw new Error('Invalid product ID format');
+      }
+      await addToCart({ productId, quantity: 1 });
+      console.log('Home - Successfully added to cart:', productId);
+      await refreshCart();
+      toast.success('Đã thêm sản phẩm vào giỏ hàng');
+    } catch (error) {
+      console.error('Home - Add to cart error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      toast.error(error.response?.data?.message || 'Không thể thêm sản phẩm vào giỏ hàng');
+    }
+  };
+
+  const renderStars = (rating) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
+
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(
+        <svg key={i} className={styles.star} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+        </svg>
+      );
+    }
+
+    if (hasHalfStar) {
+      stars.push(
+        <svg key="half" className={styles.star} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77V2z" />
+        </svg>
+      );
+    }
+
+    const emptyStars = 5 - Math.ceil(rating);
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(
+        <svg key={`empty-${i}`} className={`${styles.star} ${styles.emptyStar}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+        </svg>
+      );
+    }
+
+    return stars;
+  };
+
+  if (loading) {
+    return (
+      <div className={styles.homeContainer}>
+        <Header />
+        <div className={styles.loadingState}>Đang tải sản phẩm...</div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles.homeContainer}>
+        <Header />
+        <div className={styles.errorState}>{error}</div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.homeContainer}>
@@ -38,17 +130,17 @@ export default function Home() {
       <section className={styles.products}>
         <h2 className={styles.sectionTitle}>Sản phẩm nổi bật</h2>
         <div className={styles.productGrid}>
-          {products.map((laptop, idx) => (
+          {products.map((product) => (
             <div
               className={styles.card}
-              key={laptop._id || idx}
-              onClick={() => handleProductClick(laptop)}
+              key={product._id}
+              onClick={() => handleProductClick(product._id)}
             >
               <div className={styles.cardInner}>
                 <div className={styles.imageContainer}>
                   <img
-                    src={laptop.image}
-                    alt={laptop.name}
+                    src={product.image}
+                    alt={product.name}
                     className={styles.image}
                     loading="lazy"
                     onError={(e) => {
@@ -62,9 +154,17 @@ export default function Home() {
                 </div>
                 <div className={styles.cardContent}>
                   <div className={styles.topContent}>
-                    <h3 className={styles.name}>{laptop.name}</h3>
+                    <h3 className={styles.name}>{product.name}</h3>
+                    <div className={styles.rating}>
+                      <div className={styles.stars}>
+                        {renderStars(product.rating || 0)}
+                      </div>
+                      <span className={styles.ratingText}>
+                        {product.rating || 0} ({product.reviews || 0} đánh giá)
+                      </span>
+                    </div>
                     <div className={styles.specs}>
-                      {laptop.specs.map((spec, specIdx) => (
+                      {product.specs.map((spec, specIdx) => (
                         <span key={specIdx} className={styles.specTag}>
                           {spec}
                         </span>
@@ -73,28 +173,17 @@ export default function Home() {
                   </div>
                   <div className={styles.bottomContent}>
                     <div className={styles.priceSection}>
-                      <span className={styles.price}>{laptop.price.toLocaleString('vi-VN')}₫</span>
+                      <div className={styles.priceGroup}>
+                        <span className={styles.price}>
+                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price)}
+                        </span>
+                      </div>
                     </div>
                     <div className={styles.buttonGroup}>
-                      <button className={styles.buyBtn} aria-label="Mua ngay">
-                        <span>Mua ngay</span>
-                        <svg
-                          className={styles.btnIcon}
-                          viewBox="0 0 24 24"
-                          fill="none"
-                        >
-                          <path
-                            d="M5 12h14M12 5l7 7-7 7"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
                       <button
                         className={styles.cartBtnCard}
                         aria-label="Thêm vào giỏ hàng"
+                        onClick={(e) => handleAddToCart(product, e)}
                       >
                         <svg viewBox="0 0 24 24" fill="none">
                           <path
@@ -105,6 +194,7 @@ export default function Home() {
                             strokeLinejoin="round"
                           />
                         </svg>
+                        <span>Thêm vào giỏ</span>
                       </button>
                     </div>
                   </div>

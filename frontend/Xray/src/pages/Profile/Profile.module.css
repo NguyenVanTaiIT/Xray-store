@@ -398,6 +398,20 @@
   box-shadow: 0 0 0 3px rgba(30,144,255,0.1);
 }
 
+.detailInputDisabled {
+  background-color: #222 !important;   /* Đen đậm hơn */
+  color: #aaa !important;              /* Chữ xám nhạt hơn */
+  cursor: not-allowed !important;
+  opacity: 1;
+  border: 1px solid #333 !important;   /* Viền đậm hơn */
+}
+
+/* Loading State */
+.gridLoading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 /* Orders Content */
 .ordersContent {
   display: flex;

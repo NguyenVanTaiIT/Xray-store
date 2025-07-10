@@ -1,39 +1,29 @@
-import React, { useState} from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate} from 'react-router-dom';
+import { createOrder } from '../../services/orderService';
+import { getCartItems } from '../../services/cartService';
+import { toast } from 'react-toastify'; // Thêm import
 import styles from './Checkout.module.css';
 import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
+import { useContext } from 'react';
+import { CartContext } from '../../contexts/CartContext';
+import { UserContext } from '../../contexts/UserContext';
+import LocationSelector from '../../components/LocationSelector';
+
 
 export default function Checkout() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [orderStep, setOrderStep] = useState(1); // 1: Form, 2: Confirmation, 3: Success
-  
-  // Cart items (mock data)
-  const [cartItems] = useState([
-    {
-      _id: '1',
-      name: 'MacBook Pro 14" M3 Pro',
-      image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400',
-      price: 52990000,
-      quantity: 1,
-      specs: ['M3 Pro', '16GB RAM', '512GB SSD']
-    },
-    {
-      _id: '2',
-      name: 'Dell XPS 13 Plus',
-      image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=400',
-      price: 35990000,
-      quantity: 2,
-      specs: ['Intel i7', '16GB RAM', '1TB SSD']
-    }
-  ]);
+  const [orderStep, setOrderStep] = useState(1);
+  const { cartItems, clearCart } = useContext(CartContext);
+  const { user, isAuthenticated } = useContext(UserContext);
+  const [apiError, setApiError] = useState(null);
+  const buyNowProduct = location.state?.buyNowProduct;
 
-  // Form data
   const [formData, setFormData] = useState({
     email: '',
-    firstName: '',
-    lastName: '',
+    fullName: '', // Gộp họ và tên thành fullName
     phone: '',
     address: '',
     city: '',
@@ -45,15 +35,19 @@ export default function Checkout() {
   });
 
   const [errors, setErrors] = useState({});
+  const [orderTotal, setOrderTotal] = useState(null); // ✏️ Bước 1: Khai báo state
 
   const calculateSubtotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
+  if (buyNowProduct) {
+    return buyNowProduct.price * buyNowProduct.quantity;
+  }
+  return cartItems?.reduce((total, item) => total + (item.price * item.quantity), 0) || 0;
+};
 
-  const calculateShipping = () => {
-    const subtotal = calculateSubtotal();
-    return subtotal > 50000000 ? 0 : 500000;
-  };
+const calculateShipping = () => {
+  const subtotal = calculateSubtotal();
+  return subtotal > 50000000 ? 0 : 500000; // Đảm bảo giá trị hợp lệ
+};
 
   const calculateTotal = () => {
     return calculateSubtotal() + calculateShipping();
@@ -65,8 +59,7 @@ export default function Checkout() {
       ...prev,
       [name]: value
     }));
-    
-    // Clear error when user starts typing
+
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -77,19 +70,23 @@ export default function Checkout() {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.email) newErrors.email = 'Email là bắt buộc';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email không hợp lệ';
-    
-    if (!formData.firstName) newErrors.firstName = 'Họ là bắt buộc';
-    if (!formData.lastName) newErrors.lastName = 'Tên là bắt buộc';
+
+    if (!formData.fullName) newErrors.fullName = 'Họ và tên là bắt buộc';
     if (!formData.phone) newErrors.phone = 'Số điện thoại là bắt buộc';
     else if (!/^[0-9]{10,11}$/.test(formData.phone)) newErrors.phone = 'Số điện thoại không hợp lệ';
-    
+
     if (!formData.address) newErrors.address = 'Địa chỉ là bắt buộc';
     if (!formData.city) newErrors.city = 'Tỉnh/Thành phố là bắt buộc';
     if (!formData.district) newErrors.district = 'Quận/Huyện là bắt buộc';
     if (!formData.ward) newErrors.ward = 'Phường/Xã là bắt buộc';
+
+    // Thêm kiểm tra mã bưu điện
+    if (formData.zipCode && !/^\d{5,6}$/.test(formData.zipCode)) {
+      newErrors.zipCode = 'Mã bưu điện phải là 5-6 chữ số';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -97,21 +94,123 @@ export default function Checkout() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    setIsLoading(true);
-    
+    if (!isAuthenticated) {
+      toast.error('Vui lòng đăng nhập để đặt hàng');
+      navigate('/login');
+      return;
+    }
+
+    console.log('Checkout - User context:', { user, isAuthenticated });
+    if (!user?.id) {
+      toast.error('Không thể xác định thông tin người dùng');
+      return;
+    }
+
+    let backendCartItems = [];
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      backendCartItems = await getCartItems();
+      console.log('Checkout - Backend cart items:', backendCartItems);
+    } catch (error) {
+      console.error('Checkout - Error fetching backend cart:', error);
+      toast.error('Không thể tải giỏ hàng từ server');
+      return;
+    }
+
+    if (!buyNowProduct && (!backendCartItems || backendCartItems.length === 0)) {
+      toast.error('Giỏ hàng của bạn đang trống');
+      navigate('/cart');
+      return;
+    }
+
+    if (!validateForm()) {
+      toast.error('Vui lòng điền đầy đủ thông tin hợp lệ');
+      return;
+    }
+
+    setIsLoading(true);
+    setApiError(null);
+
+    // Sửa đoạn validItems như yêu cầu
+    const validItems = (buyNowProduct
+      ? [buyNowProduct]
+      : backendCartItems
+    ).map(item => ({
+      productId: String(item.productId._id || item.productId),
+      name: item.name,
+      price: Number(item.price),
+      quantity: Number(item.quantity),
+      image: item.image,
+      specs: Array.isArray(item.specs)
+        ? item.specs.map(spec => String(spec).trim())
+        : []
+    })).filter(item =>
+      item && item.productId &&
+      item.name && typeof item.name === 'string' &&
+      typeof item.price === 'number' && item.price > 0 &&
+      typeof item.quantity === 'number' && item.quantity > 0 &&
+      item.image && Array.isArray(item.specs)
+    );
+
+    if (validItems.length === 0) {
+      toast.error('Không có sản phẩm hợp lệ trong giỏ hàng');
+      navigate('/cart');
+      return;
+    }
+    const subtotal = calculateSubtotal();
+    const shippingFee = calculateShipping();
+    try {
+      const orderData = {
+        userId: user.id,
+        name: formData.fullName,
+        items: validItems,
+        totalPrice: subtotal,
+        shippingAddress: {
+          street: formData.address,
+          district: formData.district,
+          city: formData.city,
+          zipCode: formData.zipCode,
+          ward: formData.ward
+        },
+        paymentMethod: formData.paymentMethod,
+        shippingFee
+      };
+      console.log('Checkout - Sending order data:', orderData);
+      await createOrder(orderData);
+      console.log('Checkout - Order created successfully');
+      setOrderTotal(calculateTotal()); // ✏️ Bước 2: Lưu lại tổng tiền trước khi clearCart
+      if (!buyNowProduct) {
+        await clearCart();
+      }
       setOrderStep(3);
     } catch (error) {
-      console.error('Order submission failed:', error);
+      console.error('Checkout - Error creating order:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      const errorMessage = error.response?.data?.message || 'Đặt hàng thất bại. Vui lòng thử lại.';
+      setApiError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        email: user.email || '',
+        fullName: user.name || '', // Gán fullName từ user.name
+        phone: user.phone || '',
+        address: user.address?.street || '',
+        city: user.address?.city || '',
+        district: user.address?.district || '',
+        zipCode: user.address?.zipCode || '',
+        ward: user.address?.ward || ''
+      }));
+    }
+  }, [user]);
 
   const handleBackToCart = () => {
     navigate('/cart');
@@ -133,8 +232,8 @@ export default function Checkout() {
           <div className={styles.successContainer}>
             <div className={styles.successIcon}>
               <svg viewBox="0 0 24 24" fill="none">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" 
-                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <h1 className={styles.successTitle}>Đặt hàng thành công!</h1>
@@ -143,15 +242,15 @@ export default function Checkout() {
             </p>
             <div className={styles.orderInfo}>
               <p><strong>Mã đơn hàng:</strong> #DH{Date.now().toString().slice(-6)}</p>
-              <p><strong>Tổng tiền:</strong> {formatPrice(calculateTotal())}</p>
+              <p><strong>Tổng tiền:</strong> {formatPrice(orderTotal || calculateTotal())}</p> {/* ✏️ Bước 3 */}
               <p><strong>Phương thức thanh toán:</strong> {formData.paymentMethod === 'cod' ? 'Thanh toán khi nhận hàng' : 'Chuyển khoản ngân hàng'}</p>
             </div>
             <div className={styles.successActions}>
               <button className={styles.primaryBtn} onClick={handleContinueShopping}>
                 Tiếp tục mua sắm
               </button>
-              <button className={styles.secondaryBtn} onClick={() => navigate('/orders')}>
-                Theo dõi đơn hàng
+              <button className={styles.secondaryBtn} onClick={() => navigate('/profile?tab=orders')}>
+                Theo dõi đơn
               </button>
             </div>
           </div>
@@ -164,14 +263,14 @@ export default function Checkout() {
   return (
     <div className={styles.checkoutContainer}>
       <Header />
-      
+      {apiError && <div className={styles.errorText}>{apiError}</div>}
       <main className={styles.checkoutMain}>
         <div className={styles.checkoutContent}>
           <div className={styles.checkoutHeader}>
             <h1 className={styles.pageTitle}>Thanh toán</h1>
             <button className={styles.backBtn} onClick={handleBackToCart}>
               <svg viewBox="0 0 24 24" fill="none">
-                <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Quay lại giỏ hàng
             </button>
@@ -199,31 +298,17 @@ export default function Checkout() {
                 {/* Shipping Information */}
                 <div className={styles.formSection}>
                   <h2 className={styles.sectionTitle}>Thông tin giao hàng</h2>
-                  <div className={styles.formRow}>
-                    <div className={styles.formGroup}>
-                      <input
-                        type="text"
-                        name="firstName"
-                        placeholder="Họ *"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        className={`${styles.formInput} ${errors.firstName ? styles.inputError : ''}`}
-                      />
-                      {errors.firstName && <span className={styles.errorText}>{errors.firstName}</span>}
-                    </div>
-                    <div className={styles.formGroup}>
-                      <input
-                        type="text"
-                        name="lastName"
-                        placeholder="Tên *"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        className={`${styles.formInput} ${errors.lastName ? styles.inputError : ''}`}
-                      />
-                      {errors.lastName && <span className={styles.errorText}>{errors.lastName}</span>}
-                    </div>
+                  <div className={styles.formGroup}>
+                    <input
+                      type="text"
+                      name="fullName"
+                      placeholder="Họ và tên *"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      className={`${styles.formInput} ${errors.fullName ? styles.inputError : ''}`}
+                    />
+                    {errors.fullName && <span className={styles.errorText}>{errors.fullName}</span>}
                   </div>
-                  
                   <div className={styles.formGroup}>
                     <input
                       type="tel"
@@ -235,7 +320,6 @@ export default function Checkout() {
                     />
                     {errors.phone && <span className={styles.errorText}>{errors.phone}</span>}
                   </div>
-
                   <div className={styles.formGroup}>
                     <input
                       type="text"
@@ -247,65 +331,13 @@ export default function Checkout() {
                     />
                     {errors.address && <span className={styles.errorText}>{errors.address}</span>}
                   </div>
-
                   <div className={styles.formRow}>
-                    <div className={styles.formGroup}>
-                      <select
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        className={`${styles.formInput} ${errors.city ? styles.inputError : ''}`}
-                      >
-                        <option value="">Chọn Tỉnh/Thành phố *</option>
-                        <option value="ho-chi-minh">TP. Hồ Chí Minh</option>
-                        <option value="ha-noi">Hà Nội</option>
-                        <option value="da-nang">Đà Nẵng</option>
-                        <option value="can-tho">Cần Thơ</option>
-                      </select>
-                      {errors.city && <span className={styles.errorText}>{errors.city}</span>}
-                    </div>
-                    <div className={styles.formGroup}>
-                      <select
-                        name="district"
-                        value={formData.district}
-                        onChange={handleInputChange}
-                        className={`${styles.formInput} ${errors.district ? styles.inputError : ''}`}
-                      >
-                        <option value="">Chọn Quận/Huyện *</option>
-                        <option value="quan-1">Quận 1</option>
-                        <option value="quan-2">Quận 2</option>
-                        <option value="quan-3">Quận 3</option>
-                        <option value="quan-7">Quận 7</option>
-                      </select>
-                      {errors.district && <span className={styles.errorText}>{errors.district}</span>}
-                    </div>
-                  </div>
-
-                  <div className={styles.formRow}>
-                    <div className={styles.formGroup}>
-                      <select
-                        name="ward"
-                        value={formData.ward}
-                        onChange={handleInputChange}
-                        className={`${styles.formInput} ${errors.ward ? styles.inputError : ''}`}
-                      >
-                        <option value="">Chọn Phường/Xã *</option>
-                        <option value="phuong-ben-nghe">Phường Bến Nghé</option>
-                        <option value="phuong-ben-thanh">Phường Bến Thành</option>
-                        <option value="phuong-nguyen-thai-binh">Phường Nguyễn Thái Bình</option>
-                      </select>
-                      {errors.ward && <span className={styles.errorText}>{errors.ward}</span>}
-                    </div>
-                    <div className={styles.formGroup}>
-                      <input
-                        type="text"
-                        name="zipCode"
-                        placeholder="Mã bưu điện"
-                        value={formData.zipCode}
-                        onChange={handleInputChange}
-                        className={styles.formInput}
-                      />
-                    </div>
+                    <LocationSelector
+                      formData={formData}
+                      setFormData={setFormData}
+                      styles={styles}
+                      errors={errors}
+                    />
                   </div>
                 </div>
 
@@ -329,7 +361,7 @@ export default function Checkout() {
                         </div>
                       </div>
                     </label>
-                    
+
                     <label className={styles.paymentOption}>
                       <input
                         type="radio"
@@ -370,10 +402,10 @@ export default function Checkout() {
             <div className={styles.orderSummary}>
               <div className={styles.summaryCard}>
                 <h3 className={styles.summaryTitle}>Đơn hàng của bạn</h3>
-                
+
                 <div className={styles.orderItems}>
-                  {cartItems.map((item) => (
-                    <div key={item._id} className={styles.orderItem}>
+                  {(buyNowProduct ? [buyNowProduct] : cartItems).map((item) => (
+                    <div key={item.productId} className={styles.orderItem}>
                       <div className={styles.itemImageSmall}>
                         <img src={item.image} alt={item.name} />
                         <span className={styles.itemQuantity}>{item.quantity}</span>
@@ -381,7 +413,7 @@ export default function Checkout() {
                       <div className={styles.itemDetailsSmall}>
                         <h4>{item.name}</h4>
                         <div className={styles.itemSpecsSmall}>
-                          {item.specs.map((spec, index) => (
+                          {item.specs?.map((spec, index) => (
                             <span key={index}>{spec}</span>
                           ))}
                         </div>
@@ -411,8 +443,8 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className={styles.placeOrderBtn}
                   onClick={handleSubmit}
                   disabled={isLoading}
@@ -426,7 +458,7 @@ export default function Checkout() {
                     <>
                       Đặt hàng
                       <svg viewBox="0 0 24 24" fill="none">
-                        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </>
                   )}
@@ -436,7 +468,6 @@ export default function Checkout() {
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
   );

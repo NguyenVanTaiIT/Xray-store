@@ -2,35 +2,54 @@ import React, { useState, useEffect } from 'react';
 import styles from './Profile.module.css';
 import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
-import { useNavigate } from 'react-router-dom';
-import { getProfile, updateProfile, logoutUser } from '../../services/userService';
+import Orders from '../Orders/Orders';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { getProfile, updateProfile } from '../../services/userService';
+import { getMyOrders } from '../../services/orderService';
 import { toast } from 'react-toastify';
 import { UserContext } from '../../contexts/UserContext';
-
-const statusMap = {
-  processing: { text: 'Đang xử lý', color: '#FFA500' },
-  shipping: { text: 'Đang giao', color: '#1E90FF' },
-  delivered: { text: 'Đã giao', color: '#32CD32' },
-  cancelled: { text: 'Đã hủy', color: '#FF6347' }
-};
+import LocationSelector from '../../components/LocationSelector';
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout, setError, setUser } = React.useContext(UserContext);
+  const { user, isAuthenticated, logout, setUser } = React.useContext(UserContext);
   const [activeTab, setActiveTab] = useState('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const location = useLocation();
 
-  // Kiểm tra trạng thái xác thực
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab === 'orders') {
+      setActiveTab('orders');
+    }
+  }, [location]);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!isAuthenticated || !user) return;
+      try {
+        console.log('Profile - Fetching orders for current user');
+        const data = await getMyOrders();
+        setOrders(data.orders); // ✅ Đúng: lấy mảng orders từ response
+      } catch (err) {
+        console.error('Profile - Fetch orders error:', err.message);
+        toast.error(err.response?.data?.message || err.message || 'Không thể tải danh sách đơn hàng');
+      }
+    };
+    fetchOrders();
+  }, [isAuthenticated, user]);
+
   useEffect(() => {
     if (!isAuthenticated) {
-      localStorage.removeItem('userData');
       navigate('/login');
-      toast.error('Vui lòng đăng nhập để xem hồ sơ.');
-    }
-  }, [isAuthenticated, navigate]);
+    } 
+  }, [isAuthenticated, user, navigate]);
 
-  // Khởi tạo editForm khi user thay đổi
   useEffect(() => {
     if (user) {
       const initialForm = {
@@ -40,16 +59,15 @@ export default function Profile() {
         street: user.address?.street || '',
         district: user.address?.district || '',
         city: user.address?.city || '',
-        zipCode: user.address?.zipCode || ''
+        zipCode: user.address?.zipCode || '',
+        ward: user.address?.ward || ''
       };
-      console.log('Initialized editForm:', JSON.stringify(initialForm, null, 2));
       setEditForm(initialForm);
     }
   }, [user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    console.log('Input changed:', { name, value });
     setEditForm(prev => ({
       ...prev,
       [name]: value
@@ -57,31 +75,59 @@ export default function Profile() {
   };
 
   const handleSave = async () => {
+    setIsLoading(true);
+    setErrors({});
+
+    const validationErrors = {};
+    if (!editForm?.name?.trim()) {
+      validationErrors.name = 'Tên là bắt buộc';
+    }
+    if (!editForm?.email?.trim()) {
+      validationErrors.email = 'Email là bắt buộc';
+    }
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      setIsLoading(false);
+      toast.error('Vui lòng điền đầy đủ các trường bắt buộc');
+      return;
+    }
+
     try {
       const updatedData = {
-        name: editForm.name,
-        address: (editForm.street || editForm.district || editForm.city || editForm.zipCode) ? {
-          street: editForm.street || '',
-          district: editForm.district || '',
-          city: editForm.city || '',
-          zipCode: editForm.zipCode || ''
-        } : undefined
+        name: editForm.name.trim().replace(/[^\w\sÀ-ÿ]/g, ''),
+        phone: editForm.phone?.trim() || '',
+        address: {
+          street: editForm.street?.trim() || '',
+          ward: editForm.ward?.trim() || '',
+          district: editForm.district?.trim() || '',
+          city: editForm.city?.trim() || '',
+          zipCode: editForm.zipCode?.trim() || ''
+        }
       };
-      console.log('Payload to update:', JSON.stringify(updatedData, null, 2));
-      await updateProfile(updatedData.name, updatedData.address);
-      const updatedUser = await getProfile();
-      console.log('Updated user from API:', JSON.stringify(updatedUser, null, 2));
-      setUser(updatedUser.user); // Add this line to update UserContext
-      localStorage.setItem('userData', JSON.stringify(updatedUser.user));
-      setIsEditing(false);
+      console.log('Profile - Sending update profile data:', JSON.stringify(updatedData));
+      await updateProfile(updatedData);
+      console.log('Profile - Profile updated successfully');
       toast.success('Cập nhật thông tin thành công');
+      const updatedUser = await getProfile();
+      console.log('Profile - Fetched updated user:', updatedUser.user);
+      setUser(updatedUser.user);
+      setIsEditing(false);
+      setEditForm({ ...updatedUser.user, street: updatedUser.user.address?.street || '' });
     } catch (err) {
-      console.error('Error updating profile:', err);
-      toast.error('Lỗi cập nhật thông tin');
+      console.error('Profile - Error updating profile:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data
+      });
+      const errorMessage = err.response?.data?.message || err.message || 'Lỗi cập nhật thông tin';
+      toast.error(errorMessage);
       if (err.response?.status === 401) {
-        setError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+        console.error('Profile - Unauthorized, redirecting to login');
+        await logout();
         navigate('/login');
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -93,26 +139,44 @@ export default function Profile() {
       street: user?.address?.street || '',
       district: user?.address?.district || '',
       city: user?.address?.city || '',
-      zipCode: user?.address?.zipCode || ''
+      zipCode: user?.address?.zipCode || '',
+      ward: user?.address?.ward || ''
     });
+    setErrors({});
     setIsEditing(false);
   };
 
   const renderProfileContent = () => (
     user ? (
       <div className={styles.profileContent}>
+        {user?.role === 'admin' && (
+          <div style={{ marginBottom: 24, textAlign: 'right' }}>
+            <button
+              style={{
+                background: 'linear-gradient(90deg, #1E90FF, #4169E1)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                padding: '10px 20px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(30,144,255,0.15)'
+              }}
+              onClick={() => navigate('/admin')}
+            >
+              Vào trang admin
+            </button>
+          </div>
+        )}
         <div className={styles.profileHeader}>
           <div className={styles.userInfo}>
             <h2 className={styles.userName}>{user.name || 'Người dùng'}</h2>
             <p className={styles.userEmail}>{user.email || 'email@example.com'}</p>
-            <p className={styles.joinDate}>Tham gia từ {user.joinDate || 'N/A'}</p>
+            <p className={styles.joinDate}>Tham gia từ {user.joinDate ? new Date(user.joinDate).toLocaleDateString() : 'N/A'}</p>
           </div>
           <div className={styles.profileActions}>
             {!isEditing ? (
-              <button
-                className={styles.editBtn}
-                onClick={() => setIsEditing(true)}
-              >
+              <button className={styles.editBtn} onClick={() => setIsEditing(true)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                   <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -121,11 +185,11 @@ export default function Profile() {
               </button>
             ) : (
               <div className={styles.editActions}>
-                <button className={styles.saveBtn} onClick={handleSave}>
+                <button className={styles.saveBtn} onClick={handleSave} disabled={isLoading}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <polyline points="20,6 9,17 4,12" />
                   </svg>
-                  Lưu
+                  {isLoading ? 'Đang lưu...' : 'Lưu'}
                 </button>
                 <button className={styles.cancelBtn} onClick={handleCancel}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -151,11 +215,12 @@ export default function Profile() {
                     name="name"
                     value={editForm?.name || ''}
                     onChange={handleInputChange}
-                    className={styles.detailInput}
+                    className={`${styles.detailInput} ${errors.name ? styles.inputError : ''}`}
                   />
                 ) : (
                   <span className={styles.detailValue}>{user.name || 'N/A'}</span>
                 )}
+                {errors.name && <span className={styles.errorText}>{errors.name}</span>}
               </div>
               <div className={styles.detailItem}>
                 <label className={styles.detailLabel}>Email</label>
@@ -165,11 +230,13 @@ export default function Profile() {
                     name="email"
                     value={editForm?.email || ''}
                     onChange={handleInputChange}
-                    className={styles.detailInput}
+                    className={`${styles.detailInput} ${styles.detailInputDisabled} ${errors.email ? styles.inputError : ''}`}
+                    disabled 
                   />
                 ) : (
                   <span className={styles.detailValue}>{user.email || 'N/A'}</span>
                 )}
+                {errors.email && <span className={styles.errorText}>{errors.email}</span>}
               </div>
               <div className={styles.detailItem}>
                 <label className={styles.detailLabel}>Số điện thoại</label>
@@ -205,48 +272,44 @@ export default function Profile() {
                   <span className={styles.detailValue}>{user.address?.street || 'N/A'}</span>
                 )}
               </div>
-              <div className={styles.detailItem}>
-                <label className={styles.detailLabel}>Quận/Huyện</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    name="district"
-                    value={editForm?.district || ''}
-                    onChange={handleInputChange}
-                    className={styles.detailInput}
-                  />
-                ) : (
-                  <span className={styles.detailValue}>{user.address?.district || 'N/A'}</span>
-                )}
-              </div>
-              <div className={styles.detailItem}>
-                <label className={styles.detailLabel}>Tỉnh/Thành phố</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    name="city"
-                    value={editForm?.city || ''}
-                    onChange={handleInputChange}
-                    className={styles.detailInput}
-                  />
-                ) : (
-                  <span className={styles.detailValue}>{user.address?.city || 'N/A'}</span>
-                )}
-              </div>
-              <div className={styles.detailItem}>
-                <label className={styles.detailLabel}>Mã bưu điện</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    name="zipCode"
-                    value={editForm?.zipCode || ''}
-                    onChange={handleInputChange}
-                    className={styles.detailInput}
-                  />
-                ) : (
-                  <span className={styles.detailValue}>{user.address?.zipCode || 'N/A'}</span>
-                )}
-              </div>
+
+              {isEditing ? (
+                <LocationSelector
+                  formData={{
+                    city: editForm?.city || '',
+                    district: editForm?.district || '',
+                    ward: editForm?.ward || '',
+                    zipCode: editForm?.zipCode || ''
+                  }}
+                  setFormData={(newAddress) =>
+                    setEditForm(prev => ({
+                      ...prev,
+                      ...newAddress
+                    }))
+                  }
+                  styles={styles}
+                  errors={errors}
+                />
+              ) : (
+                <>
+                  <div className={styles.detailItem}>
+                    <label className={styles.detailLabel}>Phường/Xã</label>
+                    <span className={styles.detailValue}>{user.address?.ward || 'N/A'}</span>
+                  </div>
+                  <div className={styles.detailItem}>
+                    <label className={styles.detailLabel}>Quận/Huyện</label>
+                    <span className={styles.detailValue}>{user.address?.district || 'N/A'}</span>
+                  </div>
+                  <div className={styles.detailItem}>
+                    <label className={styles.detailLabel}>Tỉnh/Thành phố</label>
+                    <span className={styles.detailValue}>{user.address?.city || 'N/A'}</span>
+                  </div>
+                  <div className={styles.detailItem}>
+                    <label className={styles.detailLabel}>Mã bưu điện</label>
+                    <span className={styles.detailValue}>{user.address?.zipCode || 'N/A'}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -256,51 +319,11 @@ export default function Profile() {
     )
   );
 
-  const renderOrdersContent = () => (
-    user ? (
-      <div className={styles.ordersContent}>
-        <div className={styles.ordersHeader}>
-          <h3 className={styles.sectionTitle}>Lịch sử đơn hàng</h3>
-          <p className={styles.ordersSummary}>Tổng cộng {user.orders?.length || 0} đơn hàng</p>
-        </div>
-        <div className={styles.ordersList}>
-          {user.orders?.map(order => (
-            <div key={order.id} className={styles.orderCard}>
-              <div className={styles.orderHeader}>
-                <div className={styles.orderInfo}>
-                  <span className={styles.orderId}>{order.id}</span>
-                  <span className={styles.orderDate}>{order.date}</span>
-                </div>
-                <span
-                  className={styles.orderStatus}
-                  style={{ color: statusMap[order.status]?.color || '#666' }}
-                >
-                  {statusMap[order.status]?.text || 'N/A'}
-                </span>
-              </div>
-              <div className={styles.orderDetails}>
-                <div className={styles.orderMeta}>
-                  <span className={styles.orderItems}>{order.items} sản phẩm</span>
-                  <span className={styles.orderTotal}>{order.total}</span>
-                </div>
-                <div className={styles.orderActions}>
-                  <button className={styles.orderViewBtn}>Xem chi tiết</button>
-                  {order.status === 'delivered' && (
-                    <button className={styles.orderReviewBtn}>Đánh giá</button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )) || <p>Chưa có đơn hàng nào.</p>}
-        </div>
-      </div>
-    ) : (
-      <div className={styles.loading}>Đang tải đơn hàng...</div>
-    )
-  );
+  const renderStatsContent = () => {
+    // Thêm log để kiểm tra dữ liệu thống kê user
+    console.log('📊 Thống kê user:', user?.stats);
 
-  const renderStatsContent = () => (
-    user ? (
+    return user ? (
       <div className={styles.statsContent}>
         <h3 className={styles.sectionTitle}>Thống kê tài khoản</h3>
         <div className={styles.statsGrid}>
@@ -313,7 +336,11 @@ export default function Profile() {
               </svg>
             </div>
             <div className={styles.statContent}>
-              <span className={styles.statValue}>{user.stats?.totalOrders || 0}</span>
+              <span className={styles.statValue}>
+                {user.stats && typeof user.stats.totalOrders === 'number'
+                  ? user.stats.totalOrders
+                  : 0}
+              </span>
               <span className={styles.statLabel}>Tổng đơn hàng</span>
             </div>
           </div>
@@ -325,33 +352,24 @@ export default function Profile() {
               </svg>
             </div>
             <div className={styles.statContent}>
-              <span className={styles.statValue}>{user.stats?.totalSpent || '0₫'}</span>
+              <span className={styles.statValue}>
+                {user.stats && typeof user.stats.totalSpent === 'number'
+                  ? `${Number(user.stats.totalSpent).toLocaleString('vi-VN')}₫`
+                  : '0₫'}
+              </span>
               <span className={styles.statLabel}>Tổng chi tiêu</span>
-            </div>
-          </div>
-          <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-              </svg>
-            </div>
-            <div className={styles.statContent}>
-              <span className={styles.statValue}>{user.stats?.loyaltyPoints || 0}</span>
-              <span className={styles.statLabel}>Điểm tích lũy</span>
             </div>
           </div>
         </div>
       </div>
     ) : (
       <div className={styles.loading}>Đang tải thống kê...</div>
-    )
-  );
+    );
+  };
 
   return (
     <div className={styles.accountContainer}>
       <Header />
-
-      {/* Hero Section */}
       <section className={styles.heroSection}>
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>Tài khoản của tôi</h1>
@@ -366,10 +384,8 @@ export default function Profile() {
         </div>
       </section>
 
-      {/* Main Content */}
       <section className={styles.mainContent}>
         <div className={styles.contentContainer}>
-          {/* Sidebar Navigation */}
           <aside className={styles.sidebar}>
             <div className={styles.sidebarContent}>
               <div className={styles.userPreview}>
@@ -424,9 +440,8 @@ export default function Profile() {
                     try {
                       await logout();
                       navigate('/login');
-                      toast.success('Đã đăng xuất');
                     } catch (err) {
-                      console.error('Logout error:', err);
+                      console.error('Profile - Error logging out:', err);
                       toast.error('Lỗi khi đăng xuất');
                     }
                   }}
@@ -442,10 +457,9 @@ export default function Profile() {
             </div>
           </aside>
 
-          {/* Main Content Area */}
           <main className={styles.contentArea}>
             {activeTab === 'profile' && renderProfileContent()}
-            {activeTab === 'orders' && renderOrdersContent()}
+            {activeTab === 'orders' && <Orders user={user} orders={orders} />}
             {activeTab === 'stats' && renderStatsContent()}
           </main>
         </div>

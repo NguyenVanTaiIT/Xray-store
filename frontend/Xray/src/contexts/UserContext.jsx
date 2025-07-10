@@ -1,104 +1,174 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { loginUser, logoutUser, getProfile, registerUser } from '../services/userService';
+import { useNavigate } from 'react-router-dom';
+import { loginUser, logoutUser, getProfile, registerUser, updateProfile } from '../services/userService';
+import { getDashboardStats } from '../services/adminService';
+import { setLogoutCallback, setLoggingOut } from '../api/api';
+import { toast } from 'react-toastify';
 
 export const UserContext = createContext();
 
+function logServiceError(context, err, url, method, extra = {}) {
+  console.error(`${context}:`, {
+    message: err.message,
+    status: err.response?.status,
+    data: err.response?.data,
+    url,
+    method,
+    ...extra
+  });
+}
+
 export const UserProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('accessToken'));
-    const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const [error, setError] = useState(null);
 
-    const login = async (email, password) => {
-        try {
-            const response = await loginUser(email, password);
-            if (response.data.user && response.data.accessToken) {
-                setUser(response.data.user);
-                setIsAuthenticated(true);
-                localStorage.setItem('accessToken', response.data.accessToken);
-                console.log('Token saved to localStorage:', response.data.accessToken);
-                console.log('Cookies after login:', document.cookie);
-            }
-            setError(null);
-        } catch (error) {
-            console.error('Error logging in:', error.response?.data || error.message);
-            const errorMessage = error.response?.data?.message || error.message || 'Đăng nhập thất bại';
-            setError(errorMessage);
-            throw new Error(errorMessage);
+  const handleLogout = React.useCallback(async () => {
+    try {
+      try {
+        await logoutUser();
+      } catch (err) {
+        // Nếu lỗi là 401 (đã mất phiên), chỉ clear state, không báo lỗi
+        if (err.response?.status !== 401) {
+          toast.error(err.message || 'Đăng xuất thất bại');
         }
+      }
+      setUser(null);
+      setIsAuthenticated(false);
+      setLoggingOut(false);
+      navigate('/login');
+    } catch {
+      // Trường hợp lỗi khác, vẫn đảm bảo clear state và chuyển hướng
+      setUser(null);
+      setIsAuthenticated(false);
+      setLoggingOut(false);
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const response = await getProfile();
+        if (response && response.user) {
+          setUser({
+            ...response.user,
+            id: response.user._id || response.user.id, 
+            name: response.user.name || '',
+            stats: response.user.stats || { totalOrders: 0, totalSpent: 0 }
+          });
+          setIsAuthenticated(true);
+          window.__USER_LOGGED_IN__ = true;
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
+          window.__USER_LOGGED_IN__ = false;
+        }
+      } catch (err) {
+        if (err.response?.status === 401) {
+          setIsAuthenticated(false);
+          setUser(null);
+        } else if (err.response?.status === 404) {
+          toast.warn('Không tìm thấy thông tin người dùng. Vui lòng kiểm tra tài khoản.');
+        } else {
+          toast.error(err.message || 'Không thể tải thông tin người dùng');
+        }
+      }
+      setIsLoading(false);
     };
 
-    const logout = async () => {
-        try {
-            await logoutUser();
-            setUser(null);
-            setIsAuthenticated(false);
-            localStorage.removeItem('accessToken');
-            document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-            document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-            setError(null);
-        } catch (error) {
-            console.error('Error logging out:', error);
-            throw error;
-        }
-    };
+    initializeAuth();
 
-    const register = async (userData) => {
-        try {
-            const response = await registerUser(userData);
-            setUser(response.user);
-            setIsAuthenticated(true);
-            localStorage.setItem('accessToken', response.accessToken);
-            localStorage.setItem('userData', JSON.stringify(response.user));
-            setError(null);
-            return response;
-        } catch (error) {
-            console.error('Error registering user:', error.response?.data || error.message);
-            const errorMessage = error.response?.data?.message || error.message || 'Đăng ký thất bại';
-            setError(errorMessage);
-            throw new Error(errorMessage);
-        }
-    };
+    setLogoutCallback(() => {
+      handleLogout();
+    });
+  }, [navigate, handleLogout]);
 
-    useEffect(() => {
-        const checkAuth = async () => {
-            const token = localStorage.getItem('accessToken');
-            console.log('Checking auth with token:', token);
-            if (token) {
-                try {
-                    const response = await getProfile();
-                    console.log('Profile response:', response);
-                    const userData = response.user || response;
-                    if (userData && userData.id && userData.email) {
-                        setUser(userData);
-                        setIsAuthenticated(true);
-                        setError(null);
-                        localStorage.setItem('userData', JSON.stringify(userData));
-                    } else {
-                        console.error('Invalid user data in profile response:', response);
-                        localStorage.removeItem('accessToken');
-                        setIsAuthenticated(false);
-                        setUser(null);
-                        setError('Không tìm thấy thông tin người dùng hợp lệ');
-                    }
-                } catch (error) {
-                    console.error('Error checking auth:', error.response?.data || error.message);
-                    localStorage.removeItem('accessToken');
-                    setIsAuthenticated(false);
-                    setUser(null);
-                    setError(error.message || 'Không thể xác thực người dùng');
-                }
-            } else {
-                console.log('No token found in localStorage');
-                setIsAuthenticated(false);
-                setUser(null);
-            }
-        };
-        checkAuth();
-    }, []);
+  const login = async (email, password, rememberMe = false) => {
+    try {
+      const { user } = await loginUser(email, password, rememberMe);
+      setUser(user);
+      setIsAuthenticated(true);
+      navigate(user.role === 'admin' ? '/admin' : '/');
+      return user;
+    } catch (err) {
+      logServiceError('UserContext - login', err, '/users/login', 'POST', { email });
+      toast.error(err.message || 'Đăng nhập thất bại');
+      throw err;
+    }
+  };
 
-    return (
-        <UserContext.Provider value={{ user, setUser, isAuthenticated, login, logout, register, error, setError }}>
-            {children}
-        </UserContext.Provider>
-    );
+  const register = async ({ email, password, name, phone, address }) => {
+    try {
+      const response = await registerUser({ email, password, name, phone, address });
+      return response;
+    } catch (err) {
+      logServiceError('UserContext - register', err, '/users/register', 'POST', { email });
+      toast.error(err.message || 'Đăng ký thất bại');
+      throw err;
+    }
+  };
+
+  const updateUser = async (profileData) => {
+    try {
+      const response = await updateProfile(profileData);
+      setUser(response.user);
+      setIsAuthenticated(true);
+      return response.user;
+    } catch (err) {
+      if (err.response?.status === 401) {
+        toast.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+        await handleLogout();
+      } else if (err.response?.status === 404) {
+        toast.warn('Không tìm thấy thông tin người dùng. Vui lòng thử lại.');
+      } else {
+        logServiceError('UserContext - updateUser', err, '/users/profile', 'PUT', { profileData });
+        toast.error(err.message || 'Không thể cập nhật thông tin người dùng');
+      }
+      throw err;
+    }
+  };
+
+  const getAdminStats = async () => {
+    try {
+      if (!user || user.role !== 'admin') {
+        throw new Error('Chỉ admin mới có quyền truy cập thống kê');
+      }
+      const stats = await getDashboardStats();
+      return stats;
+    } catch (err) {
+      if (err.response?.status === 403) {
+        throw new Error('Chỉ admin mới có quyền truy cập thống kê');
+      } else if (err.response?.status === 401) {
+        toast.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+        await handleLogout();
+      } else {
+        logServiceError('UserContext - getAdminStats', err, '/admin/stats', 'GET');
+        toast.error(err.message || 'Không thể tải thống kê dashboard');
+      }
+      throw err;
+    }
+  };
+
+  return (
+    <UserContext.Provider
+      value={{
+        user,
+        setUser,
+        isAuthenticated,
+        isLoading,
+        login,
+        logout: handleLogout,
+        updateUser,
+        register,
+        getAdminStats,
+        error,
+        setError
+      }}
+    >
+      {children}
+    </UserContext.Provider>
+  );
 };

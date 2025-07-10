@@ -1,5 +1,6 @@
+// CartContext.jsx
 import React, { createContext, useState, useEffect, useCallback, useContext } from 'react';
-import {getCartItems, addToCart as addToCartService, updateCartItemQuantity as updateCartService, removeCartItem as removeCartService, clearCart as clearCartService } from '../services/cartService';
+import { getCartItems, addToCartService as addToCartService, updateCartItemQuantity as updateCartService, removeCartItem as removeCartService, clearCart as clearCartService } from '../services/cartService';
 import { UserContext } from './UserContext';
 import { toast } from 'react-toastify';
 
@@ -13,30 +14,28 @@ export const CartProvider = ({ children }) => {
   const refreshCart = useCallback(async () => {
     try {
       if (!isAuthenticated) {
-        console.log('User not authenticated, skipping cart fetch'); // Debug
+        setCartItems([]);
         return;
       }
       const items = await getCartItems();
-      const validItems = items.filter(
-        (item) =>
-          item &&
-          item._id &&
-          typeof item.price === 'number' &&
-          item.name &&
-          item.quantity > 0
-      );
+      const validItems = Array.isArray(items) ? items.map(item => ({
+        ...item,
+        productId: String(item.productId?._id || item.productId || ''),
+        price: Number(item.price) || 0,
+        quantity: Number(item.quantity) || 0,
+        name: String(item.name || item.productId?.name || ''),
+        image: item.image || '',
+        inStock: item.inStock !== undefined ? item.inStock : false,
+        stockQuantity: item.stockQuantity || 0
+      })).filter(item => item && item.productId && typeof item.name === 'string' && item.name !== '' && typeof item.price === 'number' && item.price > 0 && typeof item.quantity === 'number' && item.quantity > 0) : [];
       setCartItems(validItems);
       setError(null);
     } catch (error) {
-      console.error('Error fetching cart items:', error.response?.data || error.message);
-      setError(error.message || 'Không thể tải giỏ hàng');
-      toast.error(error.message || 'Không thể tải giỏ hàng');
+      setError(error.response?.data?.message || 'Không thể tải giỏ hàng');
+      toast.error(error.response?.data?.message || 'Không thể tải giỏ hàng');
+      setCartItems([]);
     }
   }, [isAuthenticated]);
-
-  useEffect(() => {
-    refreshCart();
-  }, [refreshCart]);
 
   const addToCart = async (product, quantity) => {
     if (!isAuthenticated) {
@@ -45,33 +44,30 @@ export const CartProvider = ({ children }) => {
       throw new Error('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng');
     }
     try {
-      await addToCartService({ productId: product._id, quantity });
-      await refreshCart(); // Refresh cart to sync with server
+      await addToCartService({ productId: product._id, quantity }); 
+      await refreshCart();
       setError(null);
       toast.success('Đã thêm sản phẩm vào giỏ hàng');
     } catch (error) {
-      console.error('Error adding to cart:', error);
-      setError(error.message || 'Không thể thêm sản phẩm vào giỏ hàng');
-      toast.error(error.message || 'Không thể thêm sản phẩm vào giỏ hàng');
+      setError(error.response?.data?.message || 'Không thể thêm sản phẩm vào giỏ hàng');
+      toast.error(error.response?.data?.message || 'Không thể thêm sản phẩm vào giỏ hàng');
       throw error;
     }
   };
 
+  useEffect(() => {
+    refreshCart();
+  }, [isAuthenticated, refreshCart]);
+
   const updateCartItemQuantity = async (productId, quantity) => {
-    if (!isAuthenticated) {
-      setError('Vui lòng đăng nhập để cập nhật giỏ hàng');
-      toast.error('Vui lòng đăng nhập để cập nhật giỏ hàng');
-      throw new Error('Vui lòng đăng nhập để cập nhật giỏ hàng');
-    }
     try {
       await updateCartService(productId, quantity);
-      await refreshCart(); // Refresh cart to sync with server
-      setError(null);
+      await refreshCart(); // Đảm bảo đồng bộ sau khi cập nhật
       toast.success('Đã cập nhật số lượng sản phẩm');
     } catch (error) {
-      console.error('Error updating cart item:', error);
-      setError(error.message || 'Không thể cập nhật số lượng sản phẩm');
-      toast.error(error.message || 'Không thể cập nhật số lượng sản phẩm');
+      const message = error.response?.data?.message || error.message || 'Không thể cập nhật số lượng sản phẩm';
+      setError(message);
+      toast.error(message);
       throw error;
     }
   };
@@ -83,15 +79,14 @@ export const CartProvider = ({ children }) => {
       throw new Error('Vui lòng đăng nhập để xóa sản phẩm khỏi giỏ hàng');
     }
     try {
-      await removeCartService(productId);
-      await refreshCart(); // Refresh cart to sync with server
+      await removeCartService(String(productId)); 
+      await refreshCart();
       setError(null);
-      toast.success('Đã xóa sản phẩm khỏi giỏ hàng');
-    } catch (error) {
-      console.error('Error removing cart item:', error);
-      setError(error.message || 'Không thể xóa sản phẩm khỏi giỏ hàng');
-      toast.error(error.message || 'Không thể xóa sản phẩm khỏi giỏ hàng');
-      throw error;
+    } catch (err) {
+      const message = err.response?.data?.message || err.message || 'Không thể xóa sản phẩm khỏi giỏ hàng';
+      setError(message);
+      toast.error(message);
+      throw err;
     }
   };
 
@@ -103,11 +98,9 @@ export const CartProvider = ({ children }) => {
     }
     try {
       await clearCartService();
-      await refreshCart(); // Refresh cart to sync with server
+      await refreshCart();
       setError(null);
-      toast.success('Đã xóa toàn bộ giỏ hàng');
     } catch (error) {
-      console.error('Error clearing cart:', error);
       setError(error.message || 'Không thể xóa giỏ hàng');
       toast.error(error.message || 'Không thể xóa giỏ hàng');
       throw error;

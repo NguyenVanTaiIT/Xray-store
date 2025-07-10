@@ -25,7 +25,7 @@ export default function Login() {
     },
   });
 
-  const { isAuthenticated, login, error } = useContext(UserContext);
+  const { isAuthenticated, login } = useContext(UserContext);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -33,35 +33,24 @@ export default function Login() {
     }
   }, [isAuthenticated, navigate]);
 
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
-    }
-  }, [error]);
-
-  // Thay thế onSubmit
   const onSubmit = async (data) => {
-  console.log('Login data submitted:', data); // Thêm log để debug
-  setIsSubmitting(true);
-  try {
-    await login(data.email, data.password);
-    toast.success('Đăng nhập thành công!');
-    navigate('/');
-  } catch (err) {
-    console.error('Login error:', err.response?.data || err.message); // Log lỗi chi tiết
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+    setIsSubmitting(true);
+    try {
+      const user = await login(data.email, data.password, data.rememberMe);
+      navigate(user.role === 'admin' ? '/admin' : '/');
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Đăng nhập thất bại');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleForgotPassword = () => {
-    console.log('Forgot password clicked');
-    // navigate('/forgot-password');
+    toast.info('Tính năng quên mật khẩu đang được phát triển');
   };
 
   const handleSocialLogin = (provider) => {
-    console.log(`Login with ${provider}`);
-    // Implement social login logic
+    toast.info(`Đăng nhập bằng ${provider} đang được phát triển`);
   };
 
   return (

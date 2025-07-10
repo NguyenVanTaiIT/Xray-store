@@ -1,12 +1,13 @@
 import React from "react";
 import styles from "./Intro.module.css";
+import logo from "../../assets/icon.png";
 
 export default function Intro() {
     return (
         <div className={styles.intro}>
             <div className={styles.introContent}>
                 <div className={styles.logo}>
-                    <img src="/razer.png" alt="Razer" className={styles.logoImage} />
+                    <img src={logo} alt="Razer" className={styles.logoImage} />
                 </div>
                 <h1 className={styles.title}>
                     <span className={styles.titleGradient}>Xray</span> Laptop Store

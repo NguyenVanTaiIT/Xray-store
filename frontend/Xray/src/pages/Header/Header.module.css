@@ -724,15 +724,6 @@ body.mobile-menu-open {
   animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 /* Background Elements */
 .bgElements {
   position: fixed;
@@ -939,4 +930,36 @@ body.mobile-menu-open {
   to {
     transform: rotate(360deg);
   }
+}
+
+.avatarFallback {
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(30,144,255,0.18), rgba(0,0,0,0.92));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  text-transform: uppercase;
+  border: 2px solid rgba(30,144,255,0.3);
+  box-shadow: 0 2px 8px rgba(30,144,255,0.08);
+  transition: 
+    background 0.3s,
+    color 0.3s,
+    border-color 0.3s,
+    box-shadow 0.3s,
+    transform 0.2s;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1;
+  
+}
+
+/* Hiệu ứng hover giống nút giỏ hàng và tìm kiếm */
+.avatarFallback:hover {
+  background: linear-gradient(135deg, rgba(30,144,255,0.28), rgba(0,0,0,1));
+  color: #1E90FF;
+  border-color: #1E90FF;
+  box-shadow: 0 4px 16px rgba(30,144,255,0.18);
+  transform: scale(1.07);
 }

@@ -1,0 +1,250 @@
+.searchResults {
+  min-height: 100vh;
+  /* Nền tối tương tự Home */
+  background: linear-gradient(135deg, #0a0a0a 0%, #111111 20%, #0a0a1c 40%, #1a1a1a 60%, #0d0d1b 80%, #000000 100%);
+  color: #fff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+  padding: 40px 20px 80px;
+  margin-top: 60px; 
+}
+
+.searchResults h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 50px;
+  font-weight: 700;
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  color: #fff;
+  /* Hiệu ứng neon xanh tương tự Home */
+  text-shadow: 
+    0 0 10px rgba(30,144,255,0.3),
+    0 0 20px rgba(30,144,255,0.3),
+    0 0 30px rgba(30,144,255,0.3);
+  animation: neonPulse 1.5s ease-in-out infinite alternate;
+}
+
+.searchResults h2::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  transform: translateX(-50%);
+  width: 180px;
+  height: 4px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(30,144,255,0.6),  
+    rgba(0,191,255,0.6),   
+    rgba(30,144,255,0.6),  
+    transparent
+  );
+  border-radius: 2px;
+}
+
+@keyframes neonPulse {
+  from {
+    text-shadow: 
+      0 0 10px rgba(30,144,255,0.3), 
+      0 0 20px rgba(30,144,255,0.3), 
+      0 0 30px rgba(30,144,255,0.3); 
+  }
+  to {
+    text-shadow: 
+      0 0 15px rgba(30,144,255,0.4),  
+      0 0 25px rgba(30,144,255,0.4),  
+      0 0 35px rgba(30,144,255,0.4);  
+  }
+}
+
+.searchResults p {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #ccc;
+  margin: 20px 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  justify-items: center;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ProductCard styles - tương tự Home */
+.card {
+  width: 100%;
+  min-height: 400px;
+  perspective: 1000px;
+  cursor: pointer;
+}
+
+.card > div {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+  background: linear-gradient(145deg, rgba(20,20,20,0.9), rgba(0,0,0,0.7));
+  border-radius: 24px;
+  padding: 20px;
+  transition: all 0.4s cubic-bezier(0.23,1,0.320,1);
+  border: 1px solid rgba(30,144,255,0.15);
+  backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.card:hover > div {
+  transform: translateY(-10px) rotateX(5deg);
+  box-shadow: 0 20px 60px rgba(30,144,255,0.35);
+  border-color: rgba(30,144,255,0.5);
+}
+
+.image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 16px;
+  margin-bottom: 15px;
+  background: linear-gradient(45deg, #181818, #282828);
+  transition: transform 0.4s ease;
+}
+
+.card:hover .image {
+  transform: scale(1.05);
+}
+
+.info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.name {
+  font-size: 1.3rem;
+  line-height: 1.3;
+  margin: 0 0 12px 0;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.price {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #6495ED;
+  text-shadow: 0 2px 4px rgba(100,149,237,0.4);
+  line-height: 1.2;
+  margin: 10px 0;
+}
+
+.stock {
+  font-size: 1rem;
+  color: #1E90FF;
+  font-weight: 600;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, rgba(30,144,255,0.25), rgba(30,144,255,0.15));
+  border: 1px solid rgba(30,144,255,0.45);
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(30,144,255,0.18);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  margin-top: auto;
+}
+
+.stock:hover {
+  background: linear-gradient(135deg, rgba(30,144,255,0.35), rgba(30,144,255,0.25));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(30,144,255,0.3);
+  border-color: rgba(30,144,255,0.7);
+}
+
+/* Loading và Error states */
+.searchResults .loadingState,
+.searchResults .errorState {
+  text-align: center;
+  padding: 40px 20px;
+  color: #fff;
+  background: rgba(30,144,255,0.1);
+  border: 1px solid rgba(30,144,255,0.3);
+  border-radius: 16px;
+  margin: 20px auto;
+  max-width: 600px;
+  backdrop-filter: blur(10px);
+  font-size: 1.2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .searchResults h2 {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(1, 1fr);
+    padding: 0 10px;
+  }
+  
+  .card {
+    max-width: 400px;
+    min-height: 350px;
+  }
+  
+  .searchResults h2 {
+    font-size: 1.8rem;
+    margin-bottom: 30px;
+  }
+  
+  .searchResults {
+    padding: 20px 10px 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .searchResults h2 {
+    font-size: 1.5rem;
+  }
+  
+  .name {
+    font-size: 1.1rem;
+  }
+  
+  .price {
+    font-size: 1.3rem;
+  }
+  
+  .stock {
+    font-size: 0.9rem;
+    padding: 6px 12px;
+  }
+}

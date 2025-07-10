@@ -5,6 +5,23 @@
   box-sizing: border-box;
 }
 
+.loadingState, .errorState {
+  text-align: center;
+  padding: 20px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 8px;
+  margin: 20px auto;
+  max-width: 600px;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
 .homeContainer {
   min-height: 100vh;
   /* Giữ nền tối cơ bản, có thể điều chỉnh nhẹ cho tông xanh */
@@ -13,6 +30,7 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   position: relative;
   overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .products {
@@ -83,7 +101,7 @@
 
 .card {
   width: 100%;
-  height: 500px;
+  min-height: 500px;
   perspective: 1000px;
   cursor: pointer;
 }
@@ -91,7 +109,7 @@
 .cardInner {
   position: relative;
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   background: linear-gradient(145deg, rgba(20,20,20,0.9), rgba(0,0,0,0.7));
   border-radius: 24px;
   padding: 20px;
@@ -197,6 +215,46 @@
   font-weight: 700;
   color: #ffffff; /* Giữ màu chữ trắng cho tên sản phẩm */
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Đánh giá (rating) */
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.star {
+  width: 16px;
+  height: 16px;
+  color: #ffd700; /* Màu vàng cho ngôi sao đầy */
+  fill: currentColor;
+}
+
+.emptyStar {
+  width: 16px;
+  height: 16px;
+  color: #666; /* Màu xám cho ngôi sao rỗng */
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.ratingText {
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.priceGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .specs {
@@ -312,29 +370,37 @@
 }
 
 .cartBtnCard {
-  width: 50px;
-  height: 50px;
-  /* Nút giỏ hàng cũng cần được làm rõ hơn */
-  background: rgba(255,255,255,0.15); /* Nền sáng hơn một chút */
-  border: 1px solid rgba(255,255,255,0.3); /* Viền rõ hơn */
+  flex: 1;
+  width: 100%;
+  background: linear-gradient(45deg, #1E90FF, #4169E1);
+  border: 1px solid rgba(255,255,255,0.3);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
+  padding: 14px 20px; 
+  font-size: 0.95rem; 
+  font-weight: 600; 
+  color: #fff;
 }
 
 .cartBtnCard:hover {
-  background: rgba(255,255,255,0.25); /* Nền hover sáng hơn */
+  background: rgba(255,255,255,0.25);
   transform: translateY(-2px);
 }
 
 .cartBtnCard svg {
-  /* Biểu tượng giỏ hàng nổi bật */
-  color: #6495ED; /* Xanh Cornflower Blue - Sáng hơn */
+  color: #fff;
   width: 20px;
   height: 20px;
+  transition: transform 0.3s ease;
+}
+
+.cartBtnCard span {
+  color: #fff;
 }
 
 /* Responsive Design */
@@ -363,6 +429,7 @@
   
   .card {
     max-width: 400px;
+    min-height: 450px;
   }
   
   .sectionTitle {
