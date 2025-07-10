@@ -46,3 +46,7 @@ pnpm-lock.yaml
 
 # === Git hooks ===
 .husky/
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

@@ -2,30 +2,39 @@ import api from '../api/api';
 
 export const getCartItems = async () => {
   try {
-    const response = await api.get('/cart');
-    return response.data;
-  } catch (err) {
-    console.error('Error fetching cart items:', err.response?.data || err.message);
-    throw new Error(err.response?.data?.message || 'Không thể tải giỏ hàng');
+    const response = await api.get('/api/cart');
+    const items = response.data.items || [];
+    return items;
+  } catch (error) {
+    console.error('cartService - Error fetching cart:', error);
+    throw error;
   }
 };
 
-export const addToCart = async ({ productId, quantity }) => {
+export const addToCartService = async ({ productId, quantity }) => {
   try {
-    const response = await api.post('/cart', { productId, quantity });
-    return response;
-  } catch (err) {
-    console.error('Error adding to cart:', err.response?.data || err.message);
-    if (err.response?.status === 404) {
-      throw new Error('Không tìm thấy dịch vụ giỏ hàng. Vui lòng kiểm tra server.');
+    const cleanedProductId = String(productId).trim();
+    if (!/^[0-9a-fA-F]{24}$/.test(cleanedProductId)) {
+      console.error('cartService - Invalid productId format:', productId);
+      throw new Error('ID sản phẩm không hợp lệ');
     }
-    throw new Error(err.response?.data?.message || 'Không thể thêm sản phẩm vào giỏ hàng');
+    console.log('cartService - Adding to cart:', { productId: cleanedProductId, quantity });
+    const response = await api.post('/api/cart', { productId: cleanedProductId, quantity }, { withCredentials: true });
+    console.log('cartService - Add to cart response:', response.data);
+    return response.data.items || response.data;
+  } catch (error) {
+    console.error('cartService - Error adding to cart:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+    throw error;
   }
 };
 
 export const updateCartItemQuantity = async (productId, quantity) => {
   try {
-    const response = await api.put(`/cart/${productId}`, { quantity });
+    const response = await api.put(`/api/cart/${String(productId)}`, { quantity });
     return response;
   } catch (err) {
     console.error('Error updating cart item quantity:', err.response?.data || err.message);
@@ -35,7 +44,10 @@ export const updateCartItemQuantity = async (productId, quantity) => {
 
 export const removeCartItem = async (productId) => {
   try {
-    const response = await api.delete(`/cart/${productId}`);
+    const safeProductId = String(productId);
+    console.log('Sending remove request for productId:', safeProductId);
+    const response = await api.delete(`/api/cart/${safeProductId}`); // Đảm bảo đường dẫn /api/cart/
+    console.log('Remove response:', response.data);
     return response;
   } catch (err) {
     console.error('Error removing cart item:', err.response?.data || err.message);
@@ -45,7 +57,8 @@ export const removeCartItem = async (productId) => {
 
 export const clearCart = async () => {
   try {
-    const response = await api.delete('/cart');
+    const response = await api.delete('/api/cart');
+    console.log('Clear cart response:', response.data);
     return response;
   } catch (err) {
     console.error('Error clearing cart:', err.response?.data || err.message);

@@ -4,9 +4,10 @@ import Header from "../Header/Header";
 import Footer from "../Footer/Footer";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchProductById } from "../../services/productService";
-import { addToCart } from "../../services/cartService";
-import { toast } from "react-toastify";
 import { CartContext } from '../../contexts/CartContext';
+import { UserContext } from '../../contexts/UserContext';
+import { toast } from "react-toastify";
+import { submitReview } from '../../services/productService';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -15,7 +16,11 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedImage, setSelectedImage] = useState(0);
-  const { refreshCart } = useContext(CartContext);
+  const { addToCart, refreshCart } = useContext(CartContext);
+  const { user } = useContext(UserContext);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
@@ -36,6 +41,18 @@ export default function ProductDetail() {
     fetchData();
   }, [id]);
 
+  // Thêm useEffect để tự động cuộn đến form đánh giá nếu có hash #review
+  useEffect(() => {
+    if (window.location.hash === '#review') {
+      setTimeout(() => {
+        const el = document.getElementById('reviewForm');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 300);
+    }
+  }, []);
+
   const handleHomeClick = () => {
     navigate("/");
   };
@@ -49,35 +66,33 @@ export default function ProductDetail() {
   };
 
   const handleAddToCart = async () => {
-  if (!product.inStock) {
-    toast.error("Sản phẩm hiện đã hết hàng!");
-    return;
-  }
-
-  const cartProduct = {
-    _id: product._id || id,
-    name: product.name,
-    image: product.image || "https://via.placeholder.com/600x400",
-    price: product.price,
-    quantity: product.quantity || 1,
-    specs: product.specs || [],
-    inStock: product.inStock
-  };
-
-  try {
-    await addToCart(cartProduct);
-    toast.success(`${product.name} đã được thêm vào giỏ hàng!`);
-    refreshCart();
-  } catch (err) {
-    if (err.response?.status === 401) {
-      navigate('/login');
-      toast.error('Vui lòng đăng nhập để thêm sản phẩm');
-    } else {
-      console.error('Add to cart error:', err);
-      toast.error('Lỗi khi thêm sản phẩm vào giỏ hàng');
+    if (!product.inStock) {
+      toast.error("Sản phẩm hiện đã hết hàng!");
+      return;
     }
-  }
-};
+
+    try {
+      await addToCart({
+        _id: product._id,
+        name: product.name,
+        image: product.image || "https://via.placeholder.com/600x400",
+        price: product.price,
+        quantity: product.quantity || 1,
+        specs: product.specs || [],
+        inStock: product.inStock
+      }, product.quantity || 1);
+      toast.success(`${product.name} đã được thêm vào giỏ hàng!`);
+      await refreshCart();
+    } catch (err) {
+      if (err.message === 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng') {
+        navigate('/login');
+        toast.error('Vui lòng đăng nhập để thêm sản phẩm');
+      } else {
+        console.error('Add to cart error:', err);
+        toast.error(err.message || 'Lỗi khi thêm sản phẩm vào giỏ hàng');
+      }
+    }
+  };
 
   if (loading) return <div>Đang tải...</div>;
   if (error) return <div>{error}</div>;
@@ -88,6 +103,8 @@ export default function ProductDetail() {
     images: [product.image || "https://via.placeholder.com/600x400"],
     quantity: product.quantity || 1,
   };
+
+  const alreadyReviewed = user && product.reviewsData?.some(r => r.userId === user._id);
 
   return (
     <div className={styles.detailContainer}>
@@ -213,18 +230,6 @@ export default function ProductDetail() {
             </div>
 
             <div className={styles.actionButtons}>
-              <button className={styles.buyNowBtn}>
-                <span>Mua ngay</span>
-                <svg className={styles.btnIcon} viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M5 12h14M12 5l7 7-7 7"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
               <button 
                 className={styles.addToCartBtn} 
                 onClick={handleAddToCart}
@@ -294,6 +299,73 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      {/* Đánh giá sản phẩm */}
+      <div className={styles.reviewsSection}>
+        <h2>Đánh giá sản phẩm</h2>
+        {product.reviewsData?.length > 0 ? (
+          product.reviewsData.map((review, index) => (
+            <div key={index} className={styles.reviewItem}>
+              <strong>{review.name}</strong>
+              <span className={styles.stars}>
+                {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+              </span>
+              <p>{review.comment}</p>
+            </div>
+          ))
+        ) : (
+          <p>Chưa có đánh giá nào.</p>
+        )}
+      </div>
+
+      {/* Form gửi đánh giá hoặc thông báo đã đánh giá */}
+      {user && (
+        alreadyReviewed ? (
+          <div className={styles.reviewForm}>
+            <p>Bạn đã đánh giá sản phẩm này.</p>
+          </div>
+        ) : (
+          <div className={styles.reviewForm} id="reviewForm">
+            <h3>Gửi đánh giá</h3>
+            <label>
+              Đánh giá:
+              <select value={rating} onChange={(e) => setRating(Number(e.target.value))}>
+                {[5, 4, 3, 2, 1].map(star => (
+                  <option key={star} value={star}>{star} sao</option>
+                ))}
+              </select>
+            </label>
+            <textarea
+              placeholder="Viết nhận xét..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+            />
+            <button
+              onClick={async () => {
+                if (!comment.trim()) {
+                  toast.warning("Vui lòng nhập nhận xét trước khi gửi");
+                  return;
+                }
+                setIsSubmitting(true);
+                try {
+                  await submitReview(product._id, { rating, comment });
+                  toast.success('Đã gửi đánh giá');
+                  const updated = await fetchProductById(product._id);
+                  setProduct(updated);
+                  setComment('');
+                } catch (err) {
+                  toast.error(err.response?.data?.message || 'Lỗi khi gửi đánh giá');
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
+              disabled={isSubmitting}
+            >
+              Gửi đánh giá
+            </button>
+          </div>
+        )
+      )}
 
       <Footer />
     </div>

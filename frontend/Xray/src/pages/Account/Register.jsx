@@ -6,9 +6,10 @@ import Footer from '../Footer/Footer';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { UserContext } from '../../contexts/UserContext';
+import LocationSelector from '../../components/LocationSelector'; // Import LocationSelector
 
 export default function Register() {
-  const { isAuthenticated, register: registerUser, error } = useContext(UserContext);
+  const { isAuthenticated, register: registerUser } = useContext(UserContext);
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -16,6 +17,7 @@ export default function Register() {
     register,
     handleSubmit,
     watch,
+    setValue, // Thêm setValue
     formState: { errors },
   } = useForm({
     mode: 'onChange',
@@ -25,6 +27,13 @@ export default function Register() {
       password: '',
       confirmPassword: '',
       phone: '',
+      address: {
+        street: '',
+        ward: '',
+        district: '',
+        city: '',
+        zipCode: ''
+      },
       agreeTerms: false,
     },
   });
@@ -35,13 +44,19 @@ export default function Register() {
     }
   }, [isAuthenticated, navigate]);
 
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
-    }
-  }, [error]);
-
   const watchPassword = watch('password');
+  const watchAddress = watch('address'); // Watch all address fields
+
+  // Hàm xử lý thay đổi từ LocationSelector
+  const handleAddressChange = (newAddressData) => {
+    setValue('address.city', newAddressData.city, { shouldValidate: true, shouldDirty: true });
+    setValue('address.district', newAddressData.district, { shouldValidate: true, shouldDirty: true });
+    setValue('address.ward', newAddressData.ward, { shouldValidate: true, shouldDirty: true });
+    setValue('address.zipCode', newAddressData.zipCode, { shouldValidate: true, shouldDirty: true });
+    // Street đã có input riêng nên không cần update ở đây nếu muốn giữ lại.
+    // Nếu muốn Street cũng do LocationSelector quản lý, thì cần truyền thêm prop 'street' vào LocationSelector
+    // và update ở đây.
+  };
 
   const onSubmit = async (data) => {
     console.log('Form data submitted:', data);
@@ -52,15 +67,19 @@ export default function Register() {
         password: data.password,
         name: data.fullName,
         phone: data.phone,
+        address: {
+          street: data.address.street || '',
+          ward: data.address.ward || '',
+          district: data.address.district,
+          city: data.address.city,
+          zipCode: data.address.zipCode || ''
+        },
       });
       toast.success('Đăng ký thành công!');
       navigate('/login');
     } catch (err) {
-      console.error('Error registering:', err);
-      const errorMessage = err.message === 'Email hoặc số điện thoại đã tồn tại'
-        ? 'Email hoặc số điện thoại đã được sử dụng. Vui lòng thử lại với thông tin khác.'
-        : err.message || 'Lỗi khi đăng ký';
-      toast.error(errorMessage);
+      console.error('Error registering:', err.response?.data || err.message);
+      toast.error(err.response?.data?.message || err.message || 'Lỗi khi đăng ký');
     } finally {
       setIsSubmitting(false);
     }
@@ -149,6 +168,56 @@ export default function Register() {
                   <span className={styles.errorMessage}>{errors.phone.message}</span>
                 )}
               </div>
+
+              {/* Tích hợp LocationSelector */}
+              <LocationSelector
+                formData={watchAddress} // Truyền dữ liệu địa chỉ hiện tại từ form
+                setFormData={handleAddressChange} // Hàm để cập nhật dữ liệu địa chỉ vào form
+                errors={errors.address || {}} // Truyền các lỗi liên quan đến địa chỉ
+              />
+
+              <div className={styles.formGroup}>
+                <label className={styles.label} htmlFor="street">
+                  Đường/Phố
+                </label>
+                <input
+                  type="text"
+                  id="street"
+                  {...register('address.street')}
+                  className={styles.input}
+                  placeholder="Nhập đường/phố (không bắt buộc)"
+                />
+              </div>
+              {/*
+              Phần này đã được xử lý bởi LocationSelector. Nếu muốn giữ input riêng cho Street và Ward,
+              bạn có thể bỏ qua việc truyền chúng vào LocationSelector và quản lý riêng ở đây.
+              Nhưng nếu muốn LocationSelector quản lý hoàn toàn, hãy xóa các khối formGroup này.
+              */}
+              {/* <div className={styles.formGroup}>
+                <label className={styles.label} htmlFor="ward">
+                  Phường/Xã
+                </label>
+                <input
+                  type="text"
+                  id="ward"
+                  {...register('address.ward')}
+                  className={styles.input}
+                  placeholder="Nhập phường/xã (không bắt buộc)"
+                />
+              </div> */}
+
+              {/* <div className={styles.formGroup}>
+                <label className={styles.label} htmlFor="zipCode">
+                  Mã bưu điện
+                </label>
+                <input
+                  type="text"
+                  id="zipCode"
+                  {...register('address.zipCode')}
+                  className={styles.input}
+                  placeholder="Nhập mã bưu điện (không bắt buộc)"
+                />
+              </div> */}
 
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>

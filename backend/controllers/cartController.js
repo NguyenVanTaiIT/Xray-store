@@ -1,152 +1,422 @@
+const AWSXRay = require('aws-xray-sdk');
+const mongoose = require('mongoose');
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+
+// S3 client
+const s3Client = new S3Client({ 
+  region: process.env.AWS_REGION || 'ap-southeast-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY,
+    secretAccessKey: process.env.AWS_SECRET_KEY
+  }
+});
 
 exports.getCart = async (req, res) => {
+  const userId = req.user?.userId || req.user?.id;
+  const segment = AWSXRay.getSegment();
+  const subsegment = segment ? segment.addNewSubsegment('MongoDB Query - GetCart') : null;
+
   try {
-    const userId = req.user.userId;
-    let cart = await Cart.findOne({ userId }).populate('items.productId');
+    console.log(`Fetching cart for userId: ${userId}, url: ${req.originalUrl}`);
+    const cart = await Cart.findOne({ userId }).populate('items.productId');
     if (!cart) {
-      cart = new Cart({ userId, items: [], totalPrice: 0 });
-      await cart.save();
+      subsegment?.close();
+      return res.status(200).json({ items: [], totalPrice: 0 });
     }
-    res.status(200).json(cart.items);
+
+    const itemsRaw = await Promise.all(cart.items.map(async (item) => {
+      const product = await Product.findById(item.productId).lean();
+      if (!product) {
+        console.warn(`Product ${item.productId} not found, skipping`);
+        return null;
+      }
+      return {
+        productId: item.productId._id.toString(),
+        name: item.name || product.name,
+        image: item.image || product.image,
+        price: item.price || product.price,
+        quantity: item.quantity,
+        inStock: product.stockQuantity >= item.quantity,
+        stockQuantity: product.stockQuantity,
+        specs: item.specs || product.specs || []
+      };
+    }));
+
+    const items = itemsRaw.filter(Boolean); // loại null
+    console.log(`Fetched cart with ${items.length} items, totalPrice: ${cart.totalPrice}`);
+    subsegment?.close();
+    res.status(200).json({ items, totalPrice: cart.totalPrice });
   } catch (err) {
-    console.error('Error fetching cart:', err);
+    console.error('Error fetching cart:', {
+      message: err.message,
+      stack: err.stack,
+      userId,
+      url: req.originalUrl
+    });
+    subsegment?.close(err);
     if (err.name === 'CastError') {
-      return res.status(400).json({ message: 'ID người dùng không hợp lệ' });
+      return res.status(400).json({ message: 'ID không hợp lệ' });
     }
-    res.status(500).json({ message: 'Lỗi khi lấy giỏ hàng' });
+    res.status(500).json({ message: 'Lỗi khi lấy giỏ hàng', error: err.message });
   }
 };
 
-exports.addToCart = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const { productId, quantity } = req.body;
 
-    const product = await Product.findById(productId);
-    if (!product) return res.status(404).json({ message: 'Sản phẩm không tồn tại' });
-    if (product.stockQuantity < (quantity || 1)) {
-      return res.status(400).json({ message: 'Số lượng sản phẩm trong kho không đủ' });
+exports.addToCart = async (req, res) => {
+  const userId = req.user?.userId || req.user?.id;
+  const segment = AWSXRay.getSegment();
+  const subsegment = segment ? segment.addNewSubsegment('MongoDB Query - AddToCart') : null;
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { productId, quantity } = req.body;
+    console.log(`Adding to cart for userId: ${userId}, productId: ${productId}, quantity: ${quantity}, url: ${req.originalUrl}`);
+
+    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+      subsegment?.close(new Error('Invalid product ID'));
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'ID sản phẩm không hợp lệ' });
     }
 
-    let cart = await Cart.findOne({ userId });
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      subsegment?.close(new Error('Invalid quantity'));
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Số lượng phải là số nguyên dương' });
+    }
+
+    const product = await Product.findById(productId).session(session).lean();
+    if (!product) {
+      subsegment?.close(new Error('Product not found'));
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Sản phẩm không tồn tại' });
+    }
+
+    if (product.stockQuantity < quantity) {
+      subsegment?.close(new Error('Insufficient stock'));
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: `Số lượng yêu cầu (${quantity}) vượt quá tồn kho (${product.stockQuantity})` });
+    }
+
+    let cart = await Cart.findOne({ userId }).session(session);
     if (!cart) {
       cart = new Cart({ userId, items: [], totalPrice: 0 });
     }
 
-    const existingItem = cart.items.find(item => item.productId.toString() === productId);
+    const existingItem = cart.items.find(item => String(item.productId) === productId);
     if (existingItem) {
-      existingItem.quantity += quantity || 1;
+      const newQuantity = existingItem.quantity + quantity;
+      if (newQuantity > product.stockQuantity) {
+        subsegment?.close(new Error('Insufficient stock'));
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: `Số lượng vượt quá tồn kho (${product.stockQuantity})` });
+      }
+      existingItem.quantity = newQuantity;
+      existingItem.inStock = product.stockQuantity >= newQuantity;
     } else {
       cart.items.push({
-        productId,
+        productId: product._id,
         name: product.name,
         image: product.image,
         price: product.price,
-        quantity: quantity || 1,
-        specs: product.specs || [],
-        inStock: product.stockQuantity > 0
+        quantity,
+        inStock: product.stockQuantity >= quantity,
+        specs: product.specs || []
       });
     }
 
-    cart.totalPrice = cart.items.reduce((total, item) => total + item.price * item.quantity, 0);
-    cart.updatedAt = new Date();
-    await cart.save();
-    res.status(200).json(cart.items);
+    cart.totalPrice = cart.items.reduce((total, item) => total + item.quantity * item.price, 0);
+    await Product.findByIdAndUpdate(
+      productId,
+      {
+        stockQuantity: product.stockQuantity - quantity,
+        inStock: product.stockQuantity - quantity > 0
+      },
+      { session }
+    );
+    await cart.save({ session });
+    await cart.populate('items.productId');
+    await session.commitTransaction();
+    session.endSession();
+
+    const items = cart.items.map(item => ({
+      productId: item.productId._id.toString(),
+      name: item.name,
+      image: item.image,
+      price: item.price,
+      quantity: item.quantity,
+      inStock: item.inStock,
+      specs: item.specs
+    }));
+
+    console.log(`Cart updated with ${items.length} items, totalPrice: ${cart.totalPrice}`);
+    subsegment?.close();
+    res.status(200).json({ items, totalPrice: cart.totalPrice });
   } catch (err) {
-    console.error('Error adding to cart:', err);
+    console.error('Error adding to cart:', {
+      message: err.message,
+      stack: err.stack,
+      userId,
+      url: req.originalUrl
+    });
+    await session.abortTransaction();
+    session.endSession();
+    subsegment?.close(err);
     if (err.name === 'CastError') {
-      return res.status(400).json({ message: 'ID sản phẩm không hợp lệ' });
+      return res.status(400).json({ message: 'ID không hợp lệ' });
     }
-    res.status(500).json({ message: 'Lỗi khi thêm vào giỏ hàng' });
+    if (err.code === 11000) {
+      return res.status(400).json({ message: 'Dữ liệu trùng lặp' });
+    }
+    res.status(500).json({ message: 'Lỗi khi thêm sản phẩm vào giỏ hàng', error: err.message });
   }
 };
 
+
 exports.updateCartItem = async (req, res) => {
+  const segment = AWSXRay.getSegment();
+  const subsegment = segment ? segment.addNewSubsegment('MongoDB Query - UpdateCartItem') : null;
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const userId = req.user.userId;
     const { productId } = req.params;
     const { quantity } = req.body;
+    console.log(`Updating cart item for userId: ${userId}, productId: ${productId}, quantity: ${quantity}, url: ${req.originalUrl}`);
 
-    // Find the product to validate stock and get specs
-    const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({ message: 'Sản phẩm không tồn tại' });
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      subsegment?.close(new Error('Invalid product ID'));
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'ID sản phẩm không hợp lệ' });
     }
-    if (quantity > product.stockQuantity) {
-      return res.status(400).json({ message: 'Số lượng sản phẩm trong kho không đủ' });
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      subsegment?.close(new Error('Invalid quantity'));
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Số lượng phải là số nguyên dương' });
     }
 
-    // Find the user's cart
-    const cart = await Cart.findOne({ userId });
+    const cart = await Cart.findOne({ userId }).session(session);
     if (!cart) {
+      subsegment?.close(new Error('Cart not found'));
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: 'Giỏ hàng không tồn tại' });
     }
-
-    // Find the item in the cart
-    const item = cart.items.find(item => item.productId.toString() === productId);
+    const item = cart.items.find(item => String(item.productId) === productId);
     if (!item) {
+      subsegment?.close(new Error('Item not found'));
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: 'Sản phẩm không tồn tại trong giỏ hàng' });
     }
 
-    // Update item details
-    item.quantity = Math.max(1, quantity);
-    item.inStock = product.stockQuantity >= quantity;
-    item.specs = product.specs || []; // Ensure specs are included
-    cart.totalPrice = cart.items.reduce((total, item) => total + item.price * item.quantity, 0);
-    cart.updatedAt = new Date();
-
-    // Save the updated cart
-    await cart.save();
-    res.status(200).json(cart.items);
-  } catch (err) {
-    console.error('Error updating cart:', err);
-    if (err.name === 'CastError') {
-      return res.status(400).json({ message: 'ID sản phẩm không hợp lệ' });
+    const product = await Product.findById(productId).session(session);
+    if (!product) {
+      subsegment?.close(new Error('Product not found'));
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Sản phẩm không tồn tại' });
     }
-    res.status(500).json({ message: 'Lỗi khi cập nhật giỏ hàng' });
+    if (quantity > product.stockQuantity + item.quantity) {
+      subsegment?.close(new Error('Insufficient stock'));
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: `Chỉ còn ${product.stockQuantity} sản phẩm trong kho` });
+    }
+
+    const stockAdjustment = item.quantity - quantity; // Positive if reducing quantity, negative if increasing
+    item.quantity = quantity;
+    item.inStock = product.stockQuantity + stockAdjustment >= quantity;
+    cart.totalPrice = cart.items.reduce((total, item) => total + item.quantity * item.price, 0);
+    await Product.findByIdAndUpdate(
+      productId,
+      { stockQuantity: product.stockQuantity + stockAdjustment, inStock: product.stockQuantity + stockAdjustment > 0 },
+      { session }
+    );
+    await cart.save({ session });
+    await cart.populate('items.productId');
+    await session.commitTransaction();
+    session.endSession();
+
+    const items = cart.items.map(item => ({
+      productId: item.productId._id.toString(),
+      name: item.name,
+      image: item.image,
+      price: item.price,
+      quantity: item.quantity,
+      inStock: item.inStock,
+      specs: item.specs
+    }));
+    console.log(`Cart item updated, totalPrice: ${cart.totalPrice}`);
+    subsegment?.close();
+    res.status(200).json({ items, totalPrice: cart.totalPrice });
+  } catch (err) {
+    console.error('Error updating cart:', { message: err.message, stack: err.stack, userId, url: req.originalUrl });
+    await session.abortTransaction();
+    session.endSession();
+    subsegment?.close(err);
+    if (err.name === 'CastError') {
+      return res.status(400).json({ message: 'ID không hợp lệ' });
+    }
+    if (err.code === 11000) {
+      return res.status(400).json({ message: 'Dữ liệu trùng lặp' });
+    }
+    res.status(500).json({ message: 'Lỗi khi cập nhật giỏ hàng', error: err.message });
   }
 };
 
 exports.removeCartItem = async (req, res) => {
+  const segment = AWSXRay.getSegment();
+  const subsegment = segment ? segment.addNewSubsegment('MongoDB Query - RemoveCartItem') : null;
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const userId = req.user.userId;
     const { productId } = req.params;
+    console.log(`Removing cart item for userId: ${userId}, productId: ${productId}, url: ${req.originalUrl}`);
 
-    const cart = await Cart.findOne({ userId });
-    if (!cart) return res.status(404).json({ message: 'Giỏ hàng không tồn tại' });
-
-    cart.items = cart.items.filter(item => item.productId.toString() !== productId);
-    cart.totalPrice = cart.items.reduce((total, item) => total + item.price * item.quantity, 0);
-    cart.updatedAt = new Date();
-    await cart.save();
-    res.status(200).json(cart.items);
-  } catch (err) {
-    console.error('Error removing item:', err);
-    if (err.name === 'CastError') {
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      subsegment?.close(new Error('Invalid product ID'));
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ message: 'ID sản phẩm không hợp lệ' });
     }
-    res.status(500).json({ message: 'Lỗi khi xóa sản phẩm khỏi giỏ hàng' });
+
+    const cart = await Cart.findOne({ userId }).session(session);
+    if (!cart) {
+      subsegment?.close(new Error('Cart not found'));
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Giỏ hàng không tồn tại' });
+    }
+
+    const itemIndex = cart.items.findIndex(item => String(item.productId) === productId);
+    if (itemIndex === -1) {
+      subsegment?.close(new Error('Item not found'));
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Sản phẩm không tồn tại trong giỏ hàng' });
+    }
+
+    const item = cart.items[itemIndex];
+    await Product.findByIdAndUpdate(
+      productId,
+      { $inc: { stockQuantity: item.quantity }, $set: { inStock: { $gt: ['$stockQuantity', 0] } } },
+      { session }
+    );
+    cart.items.splice(itemIndex, 1);
+    cart.totalPrice = cart.items.reduce((total, item) => total + item.quantity * item.price, 0);
+    await cart.save({ session });
+    await cart.populate('items.productId');
+    await session.commitTransaction();
+    session.endSession();
+
+    const items = cart.items.map(item => ({
+      productId: item.productId._id.toString(),
+      name: item.name,
+      image: item.image,
+      price: item.price,
+      quantity: item.quantity,
+      inStock: item.inStock,
+      specs: item.specs
+    }));
+    console.log(`Cart item removed, totalPrice: ${cart.totalPrice}`);
+    subsegment?.close();
+    res.status(200).json({ items, totalPrice: cart.totalPrice });
+  } catch (err) {
+    console.error('Error removing cart item:', { message: err.message, stack: err.stack, userId, url: req.originalUrl });
+    await session.abortTransaction();
+    session.endSession();
+    subsegment?.close(err);
+    if (err.name === 'CastError') {
+      return res.status(400).json({ message: 'ID không hợp lệ' });
+    }
+    if (err.code === 11000) {
+      return res.status(400).json({ message: 'Dữ liệu trùng lặp' });
+    }
+    res.status(500).json({ message: 'Lỗi khi xóa sản phẩm khỏi giỏ hàng', error: err.message });
   }
 };
 
 exports.clearCart = async (req, res) => {
+  const segment = AWSXRay.getSegment();
+  const subsegment = segment ? segment.addNewSubsegment('MongoDB Query - ClearCart') : null;
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const userId = req.user.userId;
-    const cart = await Cart.findOne({ userId });
-    if (!cart) return res.status(404).json({ message: 'Giỏ hàng không tồn tại' });
+    console.log(`Clearing cart for userId: ${userId}, url: ${req.originalUrl}`);
 
+    let cart = await Cart.findOne({ userId }).session(session);
+    if (!cart) {
+      cart = new Cart({ userId, items: [], totalPrice: 0 });
+    }
+
+    for (const item of cart.items) {
+      await Product.findByIdAndUpdate(
+        item.productId,
+        { $inc: { stockQuantity: item.quantity }, $set: { inStock: { $gt: ['$stockQuantity', 0] } } },
+        { session }
+      );
+    }
     cart.items = [];
     cart.totalPrice = 0;
-    cart.updatedAt = new Date();
-    await cart.save();
-    res.status(200).json([]);
+    await cart.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+
+    console.log(`Cart cleared for userId: ${userId}`);
+    subsegment?.close();
+    res.status(200).json({ items: [], totalPrice: 0 });
   } catch (err) {
-    console.error('Error clearing cart:', err);
+    console.error('Error clearing cart:', { message: err.message, stack: err.stack, userId, url: req.originalUrl });
+    await session.abortTransaction();
+    session.endSession();
+    subsegment?.close(err);
     if (err.name === 'CastError') {
-      return res.status(400).json({ message: 'ID người dùng không hợp lệ' });
+      return res.status(400).json({ message: 'ID không hợp lệ' });
     }
-    res.status(500).json({ message: 'Lỗi khi xóa giỏ hàng' });
+    if (err.code === 11000) {
+      return res.status(400).json({ message: 'Dữ liệu trùng lặp' });
+    }
+    res.status(500).json({ message: 'Lỗi khi xóa giỏ hàng', error: err.message });
+  }
+};
+
+exports.uploadCartItemImage = async (req, res) => {
+  const segment = AWSXRay.getSegment();
+  const subsegment = segment ? segment.addNewSubsegment('S3 Upload - CartItem') : null;
+  try {
+    const userId = req.user.userId;
+    const { productId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      subsegment?.close(new Error('Invalid product ID'));
+      return res.status(400).json({ message: 'ID sản phẩm không hợp lệ' });
+    }
+
+    const params = {
+      Bucket: 'ecommerce-products-2025',
+      Key: `cart/${userId}/${Date.now()}-${req.file.originalname}`,
+      Body: req.file.buffer,
+      ContentType: req.file.mimetype,
+      ACL: 'public-read',
+    };
+
+    await s3Client.send(new PutObjectCommand(params));
+    subsegment?.close();
+    res.status(200).json({ imageUrl: `https://ecommerce-products-2025.s3.ap-southeast-1.amazonaws.com/${params.Key}` });
+  } catch (err) {
+    console.error('Error uploading cart item image:', { message: err.message, stack: err.stack });
+    subsegment?.close(err);
+    res.status(500).json({ message: 'Lỗi khi upload ảnh', error: err.message });
   }
 };

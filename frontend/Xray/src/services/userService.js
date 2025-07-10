@@ -1,85 +1,134 @@
-import api from '../api/api';
+import api, { setLoggingOut } from '../api/api';
+import { toast } from 'react-toastify';
 
-export const registerUser = async (userData) => {
+export const loginUser = async (email, password, rememberMe = false) => {
   try {
-    const payload = {
-      email: userData.email,
-      password: userData.password,
-      name: userData.name,
-      phone: userData.phone,
-    };
-    console.log('Register payload:', payload);
-    const response = await api.post('/users/register', payload);
-    return response.data; // Add .data to return the actual response payload
-  } catch (err) {
-    console.error('Error registering user:', err);
-    throw err;
-  }
-};
-
-export const loginUser = async (email, password) => {
-  try {
-    console.log('Login payload:', { email, password });
-    const response = await api.post('/users/login', { email, password });
-    return response; // Trả về response thay vì response.data
+    const response = await api.post('/api/users/login', { email, password, rememberMe }, { withCredentials: true });
+    if (!response.data.user) {
+      throw new Error('Phản hồi API không chứa user');
+    }
+    window.__USER_LOGGED_IN__ = true; 
+    toast.success('Đăng nhập thành công');
+    return { user: response.data.user };
   } catch (err) {
     console.error('Error logging in:', err.response?.data || err.message);
-    throw err;
+    throw new Error(err.response?.data?.message || 'Đăng nhập thất bại');
   }
 };
 
 export const refreshToken = async () => {
   try {
-    console.log('Sending refresh-token request to:', 'http://localhost:3001/api/users/refresh-token');
-    const response = await api.post('/users/refresh-token', {}, {
-      withCredentials: true
-    });
-    console.log('Refresh token response:', response.data);
-    console.log('Cookies sent:', document.cookie); // Add this for debugging
+    const response = await api.post('/api/users/refresh-token', {}, { withCredentials: true });
     return response.data;
   } catch (err) {
     console.error('Error refreshing token:', err.response?.data || err.message);
-    throw err;
+    throw new Error(err.response?.data?.message || 'Không thể làm mới token');
   }
 };
 
 export const logoutUser = async () => {
   try {
-    const response = await api.post('/users/logout', {}, { withCredentials: true });
+    setLoggingOut(true); 
+    const response = await api.post('/api/users/logout', {}, { withCredentials: true });
+    window.__USER_LOGGED_IN__ = false; 
     return response.data;
   } catch (err) {
-    console.error('Error logging out:', err);
-    if (err.response?.status === 500) {
-      throw new Error('Lỗi server khi đăng xuất. Vui lòng thử lại sau.');
+    window.__USER_LOGGED_IN__ = false; 
+    console.error('Error logging out:', err.response?.data || err.message);
+    throw new Error(err.response?.data?.message || 'Đăng xuất thất bại');
+  }
+};
+
+export const updateProfile = async (profileData) => {
+  try {
+    const payload = {
+      name: profileData.name,
+      phone: profileData.phone,
+      address: profileData.address || { street: '', ward: '', district: '', city: '', zipCode: '' }
+    };
+    console.log('userService - Sending update profile data:', payload);
+    const response = await api.put('/api/users/profile', payload, { withCredentials: true });
+    toast.success('Cập nhật hồ sơ thành công');
+    return response.data;
+  } catch (err) {
+    console.error('userService - Error updating profile:', {
+      message: err.message,
+      status: err.response?.status,
+      data: err.response?.data
+    });
+    if (err.response?.status === 401) {
+      throw new Error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
     }
-    throw err;
+    throw new Error(err.response?.data?.message || 'Lỗi khi cập nhật hồ sơ');
   }
 };
 
 export const getProfile = async () => {
   try {
-    const response = await api.get('/users/profile');
+    const response = await api.get('/api/users/profile');
     return response.data;
   } catch (err) {
-    console.error('Error fetching profile:', err);
-    throw err;
+    if (err.code === 'ECONNABORTED') {
+      throw new Error('Request timeout. Please check your connection.');
+    }
+    
+    if (!err.response) {
+      throw new Error('Cannot connect to server. Please try again later.');
+    }
+
+    if (err.response.status === 401) {
+      return null; // Chưa đăng nhập
+    }
+
+    throw new Error(err.response.data?.message || 'Failed to fetch profile');
   }
 };
 
-export const updateProfile = async (name, address) => {
+export const registerUser = async (userData) => {
   try {
-    if (!name) {
-      throw new Error('Tên không được để trống');
-    }
-    if (address && (!address.street && !address.district && !address.city && !address.zipCode)) {
-      throw new Error('Vui lòng cung cấp ít nhất một thông tin địa chỉ');
-    }
-    const payload = address ? { name, address } : { name };
-    console.log('Sending payload to API:', payload);
-    const response = await api.put('/users/profile', payload);
+    console.log('Register data sent:', userData);
+    const response = await api.post('/api/users/register', userData, { withCredentials: true });
+    console.log('Register response:', response.data);
     return response.data;
   } catch (err) {
-    console.error('Error updating profile:', err);
-    throw err;
+    console.error('Error registering user:', {
+      message: err.message,
+      status: err.response?.status,
+      data: err.response?.data,
+      url: '/api/users/register',
+      method: 'POST'
+    });
+    throw new Error(err.response?.data?.message || 'Đăng ký thất bại');
+  }
+};
+
+export const fetchUsers = async () => {
+  try {
+    const response = await api.get('/api/users', { withCredentials: true });
+    return response.data;
+  } catch (err) {
+    console.error('Error fetching users:', err.response?.data || err.message);
+    throw new Error(err.response?.data?.message || 'Lỗi khi lấy danh sách người dùng');
+  }
+};
+
+export const deleteUser = async (userId) => {
+  try {
+    const response = await api.delete(`/api/users/${userId}`, { withCredentials: true });
+    toast.success('Xóa người dùng thành công');
+    return response.data;
+  } catch (err) {
+    console.error('Error deleting user:', err.response?.data || err.message);
+    throw new Error(err.response?.data?.message || 'Lỗi khi xóa người dùng');
+  }
+};
+
+export const updateUserByAdmin = async (userId, userData) => {
+  try {
+    const response = await api.put(`/api/users/${userId}`, userData, { withCredentials: true });
+    return response.data;
+  } catch (err) {
+    console.error('Error updating user by admin:', err.response?.data || err.message);
+    throw new Error(err.response?.data?.message || 'Lỗi khi cập nhật người dùng');
   }
 };

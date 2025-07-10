@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from '../../contexts/CartContext';
-import { UserContext } from '../../contexts/UserContext'; 
+import { UserContext } from '../../contexts/UserContext';
 import { toast } from 'react-toastify';
 import styles from './Cart.module.css';
 import Header from '../Header/Header';
@@ -13,85 +13,93 @@ export default function Cart() {
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated } = useContext(UserContext);
 
-  // Xử lý lỗi từ CartContext
+  // Handle errors from CartContext
   useEffect(() => {
     if (error) {
       toast.error(error);
     }
   }, [error]);
 
-  // Kiểm tra đăng nhập và làm mới giỏ hàng
+  // Load cart and check authentication
   useEffect(() => {
-  const loadCart = async () => {
-    setIsLoading(true);
+    const loadCart = async () => {
+      setIsLoading(true);
+      try {
+        if (!isAuthenticated) {
+          toast.error('Vui lòng đăng nhập để xem giỏ hàng');
+          navigate('/login');
+          return;
+        }
+        await refreshCart();
+      } catch (err) {
+        if (err.response?.status === 401) {
+          toast.error('Vui lòng đăng nhập để xem giỏ hàng');
+          navigate('/login');
+        } else {
+          toast.error(err.response?.data?.message || 'Không thể tải giỏ hàng');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadCart();
+  }, [navigate, refreshCart]);
+
+  // Handle increase/decrease quantity
+  const updateQuantity = async (productId, change) => {
+    if (!isAuthenticated) {
+      toast.error('Vui lòng đăng nhập để cập nhật giỏ hàng');
+      navigate('/login');
+      return;
+    }
+    const currentItem = cartItems.find((item) => String(item.productId) === String(productId));
+    if (!currentItem) {
+      console.error('Item not found in cart for productId:', productId, 'Cart items:', cartItems);
+      toast.error('Sản phẩm không tồn tại trong giỏ hàng');
+      return;
+    }
+    const newQuantity = Math.max(1, currentItem.quantity + change);
     try {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        console.log('No token found, redirecting to login');
-        toast.error('Vui lòng đăng nhập để xem giỏ hàng');
-        navigate('/login');
-        return;
-      }
-      await refreshCart();
+      const safeProductId = String(productId);
+      await updateCartItemQuantity(safeProductId, newQuantity);
     } catch (err) {
-      console.error('Error loading cart:', err);
-      if (err.response?.status === 401) {
-        toast.error('Vui lòng đăng nhập để xem giỏ hàng');
-        navigate('/login');
-      } else {
-        toast.error(err.response?.data?.message || 'Không thể tải giỏ hàng');
-      }
-    } finally {
-      setIsLoading(false);
+      console.error('Update quantity error:', err.response?.data || err.message);
+      toast.error(err.response?.data?.message || 'Không thể cập nhật số lượng sản phẩm');
     }
   };
-  loadCart();
-}, [navigate, refreshCart]);
 
-  // Xử lý tăng/giảm số lượng
-  const updateQuantity = async (id, change) => {
-  if (!isAuthenticated) {
-    toast.error('Vui lòng đăng nhập để cập nhật giỏ hàng');
-    navigate('/login');
-    return;
-  }
-  const currentItem = cartItems.find((item) => item._id === id);
-  if (!currentItem) return;
-  const newQuantity = Math.max(1, currentItem.quantity + change);
-  try {
-    await updateCartItemQuantity(id, newQuantity);
-  } catch (err) {
-    // Error handled in CartContext
-  }
-};
+  const removeItem = async (productId) => {
+    if (!isAuthenticated) {
+      toast.error('Vui lòng đăng nhập để xóa sản phẩm khỏi giỏ hàng');
+      navigate('/login');
+      return;
+    }
+    try {
+      console.log('Removing item with productId:', String(productId)); // Kiểm tra productId
+      await removeCartItem(String(productId)); // Ép thành chuỗi
+      toast.success('Đã xóa sản phẩm khỏi giỏ hàng');
+    } catch (err) {
+      console.error('Remove item error:', err.response?.data || err.message);
+      toast.error(err.response?.data?.message || 'Không thể xóa sản phẩm khỏi giỏ hàng');
+    }
+  };
 
-const removeItem = async (id) => {
-  if (!isAuthenticated) {
-    toast.error('Vui lòng đăng nhập để xóa sản phẩm khỏi giỏ hàng');
-    navigate('/login');
-    return;
-  }
-  try {
-    await removeCartItem(id);
-  } catch (err) {
-    // Error handled in CartContext
-  }
-};
+  const clearCartHandler = async () => {
+    if (!isAuthenticated) {
+      toast.error('Vui lòng đăng nhập để xóa giỏ hàng');
+      navigate('/login');
+      return;
+    }
+    if (!window.confirm('Bạn có chắc muốn xóa toàn bộ giỏ hàng?')) return;
+    try {
+      await clearCart();
+    } catch (err) {
+      console.error('Clear cart error:', err.response?.data || err.message);
+      toast.error(err.response?.data?.message || 'Không thể xóa giỏ hàng');
+    }
+  };
 
-const clearCartHandler = async () => {
-  if (!isAuthenticated) {
-    toast.error('Vui lòng đăng nhập để xóa giỏ hàng');
-    navigate('/login');
-    return;
-  }
-  if (!window.confirm('Bạn có chắc muốn xóa toàn bộ giỏ hàng?')) return;
-  try {
-    await clearCart();
-  } catch (err) {
-    toast.error(err.response?.data?.message || 'Không thể xóa giỏ hàng');
-  }
-};
-  // Tính tổng tiền
+  // Calculate subtotal
   const subtotal = useMemo(() => {
     return cartItems.reduce(
       (total, item) => total + (typeof item.price === 'number' ? item.price * item.quantity : 0),
@@ -104,21 +112,21 @@ const clearCartHandler = async () => {
   };
 
   const handleCheckout = () => {
-  if (!isAuthenticated) {
-    toast.error('Vui lòng đăng nhập để thanh toán');
-    navigate('/login');
-    return;
-  }
-  if (cartItems.length === 0) {
-    toast.error('Giỏ hàng trống, vui lòng thêm sản phẩm');
-    return;
-  }
-  if (cartItems.some((item) => !item.inStock)) {
-    toast.error('Không thể thanh toán vì có sản phẩm hết hàng');
-    return;
-  }
-  navigate('/checkout');
-};
+    if (!isAuthenticated) {
+      toast.error('Vui lòng đăng nhập để thanh toán');
+      navigate('/login');
+      return;
+    }
+    if (cartItems.length === 0) {
+      toast.error('Giỏ hàng trống, vui lòng thêm sản phẩm');
+      return;
+    }
+    if (cartItems.some((item) => !item.inStock)) {
+      toast.error('Không thể thanh toán vì có sản phẩm hết hàng');
+      return;
+    }
+    navigate('/checkout');
+  };
 
   const handleContinueShopping = () => {
     navigate('/products');
@@ -187,8 +195,8 @@ const clearCartHandler = async () => {
               <div className={styles.cartItems}>
                 {cartItems.map((item) => (
                   <div
-                    key={item._id}
-                    className={`${styles.cartItem} ${!item.inStock ? styles.outOfStock : ''}`}
+                    key={item.productId}
+                    className={`${styles.cartItem} ${!item.inStock || item.stockQuantity <= 0 ? styles.outOfStock : ''}`}
                   >
                     <div className={styles.itemImage} onClick={() => handleProductClick(item)}>
                       <img
@@ -204,6 +212,11 @@ const clearCartHandler = async () => {
                           <span>Hết hàng</span>
                         </div>
                       )}
+                      {item.inStock && item.stockQuantity <= 0 && (
+                        <div className={styles.outOfStockOverlay}>
+                          <span>Hết hàng (Cập nhật kho)</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className={styles.itemDetails}>
@@ -212,8 +225,8 @@ const clearCartHandler = async () => {
                           {item.name}
                         </h3>
                         <div className={styles.itemSpecs}>
-                          {item.specs.map((spec, index) => (
-                            <span key={index} className={styles.specTag}>
+                          {(item.specs || []).map((spec, index) => (
+                            <span key={`${item._id}-spec-${index}`} className={styles.specTag}>
                               {spec}
                             </span>
                           ))}
@@ -229,16 +242,17 @@ const clearCartHandler = async () => {
                         <div className={styles.quantityControls}>
                           <button
                             className={styles.quantityBtn}
-                            onClick={() => updateQuantity(item._id, -1)}
+                            onClick={() => updateQuantity(String(item.productId), -1)}
                             disabled={item.quantity <= 1 || !item.inStock}
+                            title={item.inStock ? (item.quantity <= 1 ? 'Số lượng tối thiểu là 1' : '') : 'Sản phẩm hết hàng'}
                           >
                             -
                           </button>
-                          <span className={styles.quantity}>{item.quantity}</span>
+                          <span className={styles.quantity}>{item.quantity}</span> {/* Đảm bảo hiển thị quantity */}
                           <button
                             className={styles.quantityBtn}
-                            onClick={() => updateQuantity(item._id, 1)}
-                            disabled={!item.inStock}
+                            onClick={() => updateQuantity(String(item.productId), 1)}
+                            disabled={!item.inStock || item.stockQuantity <= item.quantity}
                           >
                             +
                           </button>
@@ -253,15 +267,9 @@ const clearCartHandler = async () => {
                           </span>
                         </div>
 
-                        <button className={styles.removeBtn} onClick={() => removeItem(item._id)}>
+                        <button className={styles.removeBtn} onClick={() => removeItem(String(item.productId))}>
                           <svg viewBox="0 0 24 24" fill="none">
-                            <path
-                              d="M18 6L6 18M6 6l12 12"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
+                            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         </button>
                       </div>
