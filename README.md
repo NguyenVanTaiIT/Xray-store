@@ -1,4 +1,4 @@
-﻿# Xray-store
+# Xray-store
 # 🛒 Laptop Store – E-Commerce Website for AWS Workshop
 
 This project is an **e-commerce website selling laptops**, built as part of a hands-on AWS workshop. The application includes a **React frontend** and a **Node.js backend**, integrated with various AWS services to demonstrate real-world practices for building, deploying, tracing, and monitoring cloud-native applications.
@@ -78,6 +78,8 @@ cd laptop-store-workshop
 ```
 
 ### 2. Install dependencies
+
+```bash
 # Frontend
 cd client
 npm install
@@ -85,16 +87,22 @@ npm install
 # Backend
 cd ../server
 npm install
+```
 
-### 3. Create .env file in /server
+### 3. Create `.env` file in `/server`
+
+```env
 PORT=5000
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
 S3_BUCKET_NAME=your_s3_bucket_name
 AWS_ACCESS_KEY_ID=your_access_key
 AWS_SECRET_ACCESS_KEY=your_secret_key
+```
 
 ### 4. Run the application
+
+```bash
 # Start backend
 cd server
 npm run dev
@@ -102,8 +110,9 @@ npm run dev
 # Start frontend
 cd ../client
 npm run dev
+```
 
 The app will run at:
 
-Frontend: http://localhost:5173
-Backend: http://localhost:8080
+- **Frontend**: http://localhost:5173  
+- **Backend**: http://localhost:5000
