@@ -115,4 +115,5 @@ npm run dev
 The app will run at:
 
 - **Frontend**: http://localhost:5173  
-- **Backend**: http://localhost:5000
+- **Backend**: http://localhost:8080
+
