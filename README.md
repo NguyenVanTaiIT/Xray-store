@@ -104,11 +104,10 @@ AWS_SECRET_ACCESS_KEY=your_secret_key
 
 ```bash
 # Start backend
-cd server
-npm run dev
+npm start
 
 # Start frontend
-cd ../client
+cd ../Xray
 npm run dev
 ```
 
@@ -116,4 +115,23 @@ The app will run at:
 
 - **Frontend**: http://localhost:5173  
 - **Backend**: http://localhost:8080
+---
 
+## 📸 Screenshots
+
+> Below are some sample screenshots from the application:
+
+### 🖥️ Homepage
+![Homepage Screenshot](./screenshots/homepage.png)
+
+### 💻 Product Details
+![Product Details](./screenshots/product-details.png)
+
+### 🧺 Cart and Checkout
+![Cart Screenshot](./screenshots/cart.png)
+
+### 🛠️ Admin Dashboard
+![Admin Panel](./screenshots/admin.png)
+
+### 📊 AWS X-Ray Tracing
+![AWS X-Ray Trace](./screenshots/xray.png)
