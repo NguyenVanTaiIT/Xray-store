@@ -79,8 +79,11 @@ productSchema.pre('findOneAndUpdate', function(next) {
   next();
 });
 
-productSchema.pre('find', function() {
-  this.where({ isDeleted: false });
+productSchema.pre(/^find/, function(next) {
+  if (!this.getQuery().hasOwnProperty('isDeleted')) {
+    this.where({ isDeleted: false });
+  }
+  next();
 });
 
 // Index để tối ưu tìm kiếm
