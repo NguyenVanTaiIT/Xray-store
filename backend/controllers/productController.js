@@ -88,111 +88,109 @@ const withXRay = (segmentName, fn) => async (...args) => {
 
 exports.getProducts = withXRay('GetProducts', async (req, res) => {
   const { category, brand, sort, page = 1, limit = 10 } = req.query;
-  let query = {};
+  const escapeRegex = s => String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  // Thêm annotations cho query parameters
+  // Validate input
+  const safePage = Math.max(1, parseInt(page) || 1);
+  const safeLimit = Math.min(Math.max(1, parseInt(limit) || 10), 100);
+  const allowedSorts = ['price-low', 'price-high', 'rating'];
+  const safeSort = allowedSorts.includes(sort) ? sort : undefined;
+
+  // AWS X-Ray: build query subsegment
   const segment = AWSXRay.getSegment()?.addNewSubsegment('BuildQuery');
-  if (segment) {
-    segment.addAnnotation('category', category || 'all');
-    segment.addAnnotation('brand', brand || 'all');
-    segment.addAnnotation('sort', sort || 'default');
-    segment.addAnnotation('page', parseInt(page));
-    segment.addAnnotation('limit', parseInt(limit));
-    segment.addMetadata('query_params', { category, brand, sort, page, limit });
-  }
+  segment?.addAnnotation('category', category || 'all');
+  segment?.addAnnotation('brand', brand || 'all');
+  segment?.addAnnotation('sort', sort || 'default');
+  segment?.addAnnotation('page', safePage);
+  segment?.addAnnotation('limit', safeLimit);
+  segment?.addMetadata('query_params', { category, brand, sort, page, limit });
 
-  if (category && category !== 'all') {
-    query.category = new RegExp(`^${category}$`, 'i');
-  }
-
-  if (brand && brand !== 'all') {
-    query.brand = new RegExp(`^${brand}$`, 'i');
-  }
+  let query = { isDeleted: false };
+  if (category && category !== 'all') query.category = new RegExp(`^${escapeRegex(category)}$`, 'i');
+  if (brand && brand !== 'all') query.brand = new RegExp(`^${escapeRegex(brand)}$`, 'i');
 
   let sortOption = {};
-  if (sort === 'price-low') {
-    sortOption.price = 1;
-  } else if (sort === 'price-high') {
-    sortOption.price = -1;
-  } else if (sort === 'rating') {
-    sortOption.rating = -1;
-  }
+  if (safeSort === 'price-low') sortOption.price = 1;
+  else if (safeSort === 'price-high') sortOption.price = -1;
+  else if (safeSort === 'rating') sortOption.rating = -1;
 
   segment?.close();
 
-  // Thêm subsegment cho database operations
+  // AWS X-Ray: database subsegment
   const dbSegment = AWSXRay.getSegment()?.addNewSubsegment('DatabaseOperations');
   try {
-    const totalCount = await Product.countDocuments(query);
-    const deletedCount = await Product.countDocuments({ ...query, isDeleted: true });
+    const aggregation = [
+      { $match: { ...query } }, // dùng query hiện tại (đã có isDeleted, category, brand nếu có)
+      {
+        $facet: {
+          total: [{ $count: 'count' }],
+          categoryCounts: [
+            { $group: { _id: '$category', count: { $sum: 1 } } },
+            { $project: { _id: 0, category: '$_id', count: 1 } }
+          ]
+        }
+      }
+    ];
 
-    // Tối ưu categoryCounts bằng aggregation
-    const categoryCounts = await Product.aggregate([
-      { $group: { _id: '$category', count: { $sum: 1 } } },
-      { $project: { _id: 0, category: '$_id', count: 1 } }
-    ]).then(results => {
-      const counts = { all: 0 };
-      results.forEach(r => {
-        counts[r.category.toLowerCase()] = r.count;
-        counts.all += r.count;
+    let totalCount = 0, deletedCount = 0, categoryCounts = { all: 0 };
+    const aggResult = await Product.aggregate(aggregation);
+    if (aggResult[0]) {
+      totalCount = aggResult[0].total[0]?.count || 0;
+      deletedCount = aggResult[0].deleted[0]?.count || 0;
+      aggResult[0].categoryCounts.forEach(r => {
+        categoryCounts[r.category.toLowerCase()] = r.count;
+        categoryCounts.all += r.count;
       });
-      return counts;
-    });
+    }
 
     const products = await Product.find(query)
       .sort(sortOption)
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit))
+      .skip((safePage - 1) * safeLimit)
+      .limit(safeLimit)
       .lean();
 
-    if (dbSegment) {
-      dbSegment.addAnnotation('total_count', totalCount);
-      dbSegment.addAnnotation('deleted_count', deletedCount);
-      dbSegment.addAnnotation('products_found', products.length);
-      dbSegment.addMetadata('query_filter', query);
-      dbSegment.addMetadata('category_counts', categoryCounts);
-      dbSegment.addMetadata('products_sample', products.slice(0, 3).map(p => ({
-        id: p._id,
-        name: p.name,
-        price: p.price
-      })));
-    }
-
+    dbSegment?.addAnnotation('total_count', totalCount);
+    dbSegment?.addAnnotation('deleted_count', deletedCount);
+    dbSegment?.addAnnotation('products_found', products.length);
+    dbSegment?.addMetadata('query_filter', query);
+    dbSegment?.addMetadata('category_counts', categoryCounts);
+    dbSegment?.addMetadata('products_sample', products.slice(0, 3).map(p => ({
+      id: p._id,
+      name: p.name,
+      price: p.price
+    })));
     dbSegment?.close();
 
-    // Thêm response metadata
+    // AWS X-Ray: build response subsegment
     const responseData = {
       products,
-      totalCount: totalCount || 0,
-      totalPages: Math.ceil(totalCount / limit),
-      currentPage: parseInt(page),
+      totalCount,
+      totalPages: Math.ceil(totalCount / safeLimit),
+      currentPage: safePage,
       categoryCounts
     };
 
     const responseSegment = AWSXRay.getSegment()?.addNewSubsegment('BuildResponse');
-    if (responseSegment) {
-      responseSegment.addAnnotation('response_products_count', products.length);
-      responseSegment.addAnnotation('response_total_pages', Math.ceil(totalCount / limit));
-      responseSegment.addAnnotation('response_current_page', parseInt(page));
-      responseSegment.addMetadata('response_data', responseData);
-    }
+    responseSegment?.addAnnotation('response_products_count', products.length);
+    responseSegment?.addAnnotation('response_total_pages', Math.ceil(totalCount / safeLimit));
+    responseSegment?.addAnnotation('response_current_page', safePage);
+    responseSegment?.addMetadata('response_data', responseData);
     responseSegment?.close();
 
     res.status(200).json(responseData);
   } catch (error) {
-    if (dbSegment) {
-      dbSegment.addAnnotation('db_error', true);
-      dbSegment.addMetadata('db_error_details', {
-        message: error.message,
-        code: error.code,
-        stack: error.stack
-      });
-      dbSegment.close(error);
-    }
-    throw error;
+    dbSegment?.addAnnotation('db_error', true);
+    dbSegment?.addMetadata('db_error_details', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
+    dbSegment?.close(error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
+// getProductById cũng cần kiểm tra isDeleted
 exports.getProductById = withXRay('GetProductById', async (req, res) => {
   console.log(`Fetching product with ID: ${req.params.id}`);
   const lookupSegment = AWSXRay.getSegment()?.addNewSubsegment('ProductLookup');
@@ -202,7 +200,7 @@ exports.getProductById = withXRay('GetProductById', async (req, res) => {
   }
 
   try {
-    const product = await Product.findById(req.params.id).lean();
+    const product = await Product.findOne({ _id: req.params.id, isDeleted: false }).lean();
 
     if (lookupSegment) {
       lookupSegment.addAnnotation('product_found', !!product);
@@ -683,6 +681,27 @@ exports.uploadProductImage = withXRay('UploadProductImage', async (req, res) => 
       });
       s3Segment.close(error);
     }
+    throw error;
+  }
+});
+
+exports.deleteReview = withXRay('DeleteReview', async (req, res) => {
+  const { id, reviewId } = req.params;
+  const userId = req.user.userId;
+  const dbSegment = AWSXRay.getSegment()?.addNewSubsegment('DatabaseOperations');
+  try {
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: 'Không tìm thấy sản phẩm' });
+    }
+    // Xóa review
+    product.reviewsData = product.reviewsData.filter(r => r._id.toString() !== reviewId || r.userId.toString() !== userId);
+    product.updateRating(); // Đồng bộ lại rating và reviews
+    await product.save();
+    dbSegment?.close();
+    res.status(200).json({ message: 'Đã xóa đánh giá' });
+  } catch (error) {
+    dbSegment?.close(error);
     throw error;
   }
 });
