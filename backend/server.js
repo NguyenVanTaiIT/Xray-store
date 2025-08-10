@@ -124,18 +124,35 @@ const connectMongoDB = async (maxRetries = 5, retryDelay = 3000) => {
   while (attempt < maxRetries) {
     try {
       console.log(`Attempting MongoDB connection (attempt ${++attempt}/${maxRetries})`);
-      const client = new SecretsManagerClient({ region: 'ap-southeast-1' });
-      const command = new GetSecretValueCommand({ SecretId: 'mongodb/connection' });
-      const data = await client.send(command);
-      let uri;
 
-try {
-  const secret = JSON.parse(data.SecretString);
-  uri = secret.MONGODB_URI;
-} catch (e) {
-  uri = data.SecretString; // fallback nếu không phải JSON
-}
-      if (!uri) throw new Error('MongoDB URI not found');
+      let uri = process.env.MONGODB_URI; // fallback từ .env nếu secret không tồn tại
+
+      // Cố gắng lấy từ AWS Secrets Manager nếu có
+      try {
+        const client = new SecretsManagerClient({ region: 'ap-southeast-1' });
+        const command = new GetSecretValueCommand({ SecretId: 'mongodb/connection' });
+        const data = await client.send(command);
+
+        try {
+          const secret = JSON.parse(data.SecretString);
+          if (secret.MONGODB_URI) {
+            uri = secret.MONGODB_URI;
+            console.log('✅ MongoDB URI loaded from AWS Secrets Manager (JSON format)');
+          }
+        } catch {
+          uri = data.SecretString || uri;
+          console.log('✅ MongoDB URI loaded from AWS Secrets Manager (string format)');
+        }
+      } catch (err) {
+        console.warn('⚠️ Could not load secret from AWS Secrets Manager. Falling back to .env');
+      }
+
+      if (!uri) {
+        throw new Error('MongoDB URI not found in Secrets Manager or .env');
+      }
+
+      console.log('📌 Final MongoDB URI source:', uri.includes('amazonaws') ? 'AWS Secrets' : '.env');
+
       await mongoose.connect(uri, {
         serverSelectionTimeoutMS: 10000,
         socketTimeoutMS: 45000,
@@ -145,6 +162,7 @@ try {
         retryWrites: true,
         retryReads: true
       });
+
       console.log('✅ MongoDB connected successfully');
       return;
     } catch (error) {
@@ -157,6 +175,7 @@ try {
     }
   }
 };
+
 
 // Database connection event handlers
 mongoose.connection.on('connected', () => {
