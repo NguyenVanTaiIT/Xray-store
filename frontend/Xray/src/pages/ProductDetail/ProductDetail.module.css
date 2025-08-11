@@ -1,4 +1,3 @@
-/* ProductDetail.module.css */
 * {
   margin: 0;
   padding: 0;
@@ -7,7 +6,6 @@
 
 .detailContainer {
   min-height: 100vh;
-  /* Updated to match Home.module.css background */
   background: linear-gradient(135deg, #0a0a0a 0%, #111111 20%, #0a0a1c 40%, #1a1a1a 60%, #0d0d1b 80%, #000000 100%);
   color: #fff;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -33,7 +31,7 @@
 }
 
 .clickableBreadcrumb:hover {
-  color: #1E90FF; /* Changed from green to Dodger Blue */
+  color: #1E90FF;
 }
 
 .separator {
@@ -41,7 +39,7 @@
 }
 
 .current {
-  color: #1E90FF; /* Changed from green to Dodger Blue */
+  color: #1E90FF;
   font-weight: 500;
 }
 
@@ -68,7 +66,7 @@
   border-radius: 24px;
   overflow: hidden;
   margin-bottom: 20px;
-  border: 1px solid rgba(30,144,255,0.1); /* Changed from green to blue */
+  border: 1px solid rgba(30,144,255,0.1);
   backdrop-filter: blur(20px);
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
 }
@@ -88,7 +86,7 @@
   position: absolute;
   top: 20px;
   right: 20px;
-  background: linear-gradient(45deg, #FF4444, #FF6666); /* Kept red for badge */
+  background: linear-gradient(45deg, #FF4444, #FF6666);
   color: #fff;
   padding: 8px 16px;
   border-radius: 20px;
@@ -118,13 +116,13 @@
 }
 
 .thumbnail:hover {
-  border-color: rgba(30,144,255,0.4); /* Changed from green to blue */
+  border-color: rgba(30,144,255,0.4);
   transform: translateY(-2px);
 }
 
 .activeThumbnail {
-  border-color: #1E90FF !important; /* Changed from green to Dodger Blue */
-  box-shadow: 0 4px 12px rgba(30,144,255,0.3); /* Changed from green to blue */
+  border-color: #1E90FF !important;
+  box-shadow: 0 4px 12px rgba(30,144,255,0.3);
 }
 
 .infoSection {
@@ -135,8 +133,7 @@
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 20px;
-  /* Updated gradient to blue tones */
-  background: linear-gradient(45deg, #fff, #6495ED); /* Changed from green to Cornflower Blue */
+  background: linear-gradient(45deg, #fff, #6495ED);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -153,8 +150,8 @@
 .currentPrice {
   font-size: 2rem;
   font-weight: bold;
-  color: #6495ED; /* Changed from green to Cornflower Blue */
-  text-shadow: 0 2px 4px rgba(100,149,237,0.3); /* Changed from green to blue */
+  color: #6495ED;
+  text-shadow: 0 2px 4px rgba(100,149,237,0.3);
 }
 
 .originalPrice {
@@ -164,7 +161,7 @@
 }
 
 .discount {
-  background: linear-gradient(45deg, #FF4444, #FF6666); /* Kept red for discount */
+  background: linear-gradient(45deg, #FF4444, #FF6666);
   color: #fff;
   padding: 4px 8px;
   border-radius: 8px;
@@ -182,7 +179,7 @@
 }
 
 .inStock {
-  color: #6495ED; /* Changed from green to Cornflower Blue */
+  color: #6495ED;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -190,7 +187,7 @@
 }
 
 .outOfStock {
-  color: #FF4444; /* Kept red for out of stock */
+  color: #FF4444;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -198,7 +195,7 @@
 }
 
 .warranty {
-  color: #6495ED; /* Changed from light green to Cornflower Blue */
+  color: #6495ED;
   font-size: 0.9rem;
 }
 
@@ -216,7 +213,7 @@
 .quickSpecs h3 {
   font-size: 1.3rem;
   margin-bottom: 15px;
-  color: #1E90FF; /* Changed from green to Dodger Blue */
+  color: #1E90FF;
 }
 
 .specsList {
@@ -231,12 +228,12 @@
   padding: 12px;
   background: linear-gradient(145deg, rgba(20,20,20,0.6), rgba(0,0,0,0.4));
   border-radius: 12px;
-  border: 1px solid rgba(30,144,255,0.1); /* Changed from green to blue */
+  border: 1px solid rgba(30,144,255,0.1);
 }
 
 .specLabel {
   font-weight: 600;
-  color: #6495ED; /* Changed from light green to Cornflower Blue */
+  color: #6495ED;
 }
 
 .specValue {
@@ -257,7 +254,7 @@
 
 .quantitySelector label {
   font-weight: 600;
-  color: #6495ED; /* Changed from light green to Cornflower Blue */
+  color: #6495ED;
 }
 
 .quantityControls {
@@ -265,7 +262,7 @@
   align-items: center;
   background: linear-gradient(145deg, rgba(20,20,20,0.9), rgba(0,0,0,0.7));
   border-radius: 12px;
-  border: 1px solid rgba(30,144,255,0.2); /* Changed from green to blue */
+  border: 1px solid rgba(30,144,255,0.2);
   overflow: hidden;
 }
 
@@ -274,7 +271,7 @@
   height: 40px;
   background: transparent;
   border: none;
-  color: #1E90FF; /* Changed from green to Dodger Blue */
+  color: #1E90FF;
   font-size: 1.2rem;
   font-weight: bold;
   cursor: pointer;
@@ -285,7 +282,7 @@
 }
 
 .quantityBtn:hover:not(:disabled) {
-  background: rgba(30,144,255,0.1); /* Changed from green to blue */
+  background: rgba(30,144,255,0.1);
 }
 
 .quantityBtn:disabled {
@@ -301,8 +298,8 @@
   justify-content: center;
   font-weight: 600;
   color: #fff;
-  border-left: 1px solid rgba(30,144,255,0.2); /* Changed from green to blue */
-  border-right: 1px solid rgba(30,144,255,0.2); /* Changed from green to blue */
+  border-left: 1px solid rgba(30,144,255,0.2);
+  border-right: 1px solid rgba(30,144,255,0.2);
 }
 
 .actionButtons {
@@ -312,8 +309,8 @@
 
 .buyNowBtn {
   flex: 2;
-  background: linear-gradient(45deg, #1E90FF, #4169E1); /* Changed from green to blue */
-  color: #fff; /* Changed to white for better contrast */
+  background: linear-gradient(45deg, #1E90FF, #4169E1);
+  color: #fff;
   border: none;
   border-radius: 12px;
   padding: 16px 24px;
@@ -329,7 +326,7 @@
   position: relative;
   overflow: hidden;
   transition: transform 0.3s ease;
-  box-shadow: 0 4px 15px rgba(30,144,255,0.3); /* Changed from green to blue */
+  box-shadow: 0 4px 15px rgba(30,144,255,0.3);
 }
 
 .buyNowBtn::before {
@@ -345,7 +342,7 @@
 
 .buyNowBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(30,144,255,0.4); /* Changed from green to blue */
+  box-shadow: 0 8px 25px rgba(30,144,255,0.4);
 }
 
 .buyNowBtn:hover::before {
@@ -358,7 +355,7 @@
   border: 1px solid rgba(255,255,255,0.2);
   border-radius: 12px;
   padding: 16px 24px;
-  color: #6495ED; /* Changed from light green to Cornflower Blue */
+  color: #6495ED;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -372,7 +369,7 @@
 .addToCartBtn:hover {
   background: rgba(255,255,255,0.2);
   transform: translateY(-2px);
-  border-color: rgba(30,144,255,0.4); /* Changed from green to blue */
+  border-color: rgba(30,144,255,0.4);
 }
 
 .addToCartBtn svg {
@@ -398,7 +395,7 @@
 
 .tabContent {
   display: grid;
-  grid-template-columns: 1.3fr 0.7fr; /* Khung tính năng nổi bật rộng hơn, khung thông số nhỏ hơn */
+  grid-template-columns: 1.3fr 0.7fr;
   gap: 40px;
   align-items: start;
 }
@@ -453,29 +450,29 @@
   padding: 15px;
   background: linear-gradient(145deg, rgba(30,30,30,0.6), rgba(10,10,10,0.4));
   border-radius: 12px;
-  border: 1px solid rgba(30,144,255,0.1); /* Changed from green to blue */
+  border: 1px solid rgba(30,144,255,0.1);
   transition: all 0.3s ease;
 }
 
 .specRow:hover {
-  border-color: rgba(30,144,255,0.3); /* Changed from green to blue */
+  border-color: rgba(30,144,255,0.3);
   transform: translateX(5px);
 }
 
 .specKey {
   font-weight: 600;
-  color: #6495ED; /* Changed from light green to Cornflower Blue */
+  color: #6495ED;
 }
 
-/* Styles for the new features description paragraph */
-.features p { /* Targeting the paragraph inside the .features div */
+
+.features p { 
   font-size: 1.1rem;
   line-height: 1.8;
   color: #ccc;
-  padding: 15px; /* Add some padding around the text */
-  background: linear-gradient(145deg, rgba(30,30,30,0.6), rgba(10,10,10,0.4)); /* Match background to specRow/featureItem */
+  padding: 15px; 
+  background: linear-gradient(145deg, rgba(30,30,30,0.6), rgba(10,10,10,0.4)); 
   border-radius: 12px;
-  border: 1px solid rgba(30,144,255,0.1); /* Match border to specRow/featureItem */
+  border: 1px solid rgba(30,144,255,0.1); 
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
@@ -500,8 +497,6 @@
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
   padding: 30px;
 }
-
-/* Review Form and Section Styles */
 .reviewForm {
   margin: 2rem auto;
   max-width: 600px;
@@ -623,8 +618,6 @@
 .reviewForm button:disabled::before {
   display: none;
 }
-
-/* Thông báo đã đánh giá */
 .reviewForm p {
   text-align: center;
   color: #6495ED;
@@ -708,7 +701,7 @@
   border-left: 3px solid rgba(30,144,255,0.3);
 }
 
-/* Responsive Design */
+
 @media (max-width: 1024px) {
   .productDetail {
     grid-template-columns: 1fr;

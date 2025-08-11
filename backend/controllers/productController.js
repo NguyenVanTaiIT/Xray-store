@@ -105,7 +105,7 @@ exports.getProducts = withXRay('GetProducts', async (req, res) => {
   segment?.addAnnotation('limit', safeLimit);
   segment?.addMetadata('query_params', { category, brand, sort, page, limit });
 
-  let query = { isDeleted: false };
+  let query = { isDeleted: false }; // Remove isDeleted filter to show all products
   if (category && category !== 'all') query.category = new RegExp(`^${escapeRegex(category)}$`, 'i');
   if (brand && brand !== 'all') query.brand = new RegExp(`^${escapeRegex(brand)}$`, 'i');
 
@@ -132,11 +132,10 @@ exports.getProducts = withXRay('GetProducts', async (req, res) => {
       }
     ];
 
-    let totalCount = 0, deletedCount = 0, categoryCounts = { all: 0 };
+    let totalCount = 0, categoryCounts = { all: 0 };
     const aggResult = await Product.aggregate(aggregation);
     if (aggResult[0]) {
       totalCount = aggResult[0].total[0]?.count || 0;
-      deletedCount = aggResult[0].deleted[0]?.count || 0;
       aggResult[0].categoryCounts.forEach(r => {
         categoryCounts[r.category.toLowerCase()] = r.count;
         categoryCounts.all += r.count;
@@ -150,7 +149,6 @@ exports.getProducts = withXRay('GetProducts', async (req, res) => {
       .lean();
 
     dbSegment?.addAnnotation('total_count', totalCount);
-    dbSegment?.addAnnotation('deleted_count', deletedCount);
     dbSegment?.addAnnotation('products_found', products.length);
     dbSegment?.addMetadata('query_filter', query);
     dbSegment?.addMetadata('category_counts', categoryCounts);

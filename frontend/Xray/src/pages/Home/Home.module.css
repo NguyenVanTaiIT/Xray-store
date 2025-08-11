@@ -1,4 +1,4 @@
-/* Home.module.css - Cleaned Version */
+
 * {
   margin: 0;
   padding: 0;
@@ -24,7 +24,6 @@ html, body {
 
 .homeContainer {
   min-height: 100vh;
-  /* Giữ nền tối cơ bản, có thể điều chỉnh nhẹ cho tông xanh */
   background: linear-gradient(135deg, #0a0a0a 0%, #111111 20%, #0a0a1c 40%, #1a1a1a 60%, #0d0d1b 80%, #000000 100%);
   color: #fff;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -51,9 +50,9 @@ html, body {
   width: 100%;
   color: #fff;
   text-shadow: 
-    0 0 10px rgba(30,144,255,0.3),  /* Giảm opacity từ 0.8 xuống 0.3 */
-    0 0 20px rgba(30,144,255,0.3),  /* Giảm opacity từ 0.8 xuống 0.3 */
-    0 0 30px rgba(30,144,255,0.3);  /* Giảm opacity từ 0.8 xuống 0.3 */
+    0 0 10px rgba(30,144,255,0.3),
+    0 0 20px rgba(30,144,255,0.3),
+    0 0 30px rgba(30,144,255,0.3);
   animation: neonPulse 1.5s ease-in-out infinite alternate;
 }
 
@@ -114,8 +113,7 @@ html, body {
   border-radius: 24px;
   padding: 20px;
   transition: all 0.4s cubic-bezier(0.23,1,0.320,1);
-  /* Đường viền thẻ sáng hơn một chút để nổi bật trên nền tối */
-  border: 1px solid rgba(30,144,255,0.15); /* Xanh Dodger Blue - Sáng hơn */
+  border: 1px solid rgba(30,144,255,0.15);
   backdrop-filter: blur(20px);
   display: flex;
   flex-direction: column;
@@ -124,9 +122,8 @@ html, body {
 
 .card:hover .cardInner {
   transform: translateY(-10px) rotateX(5deg);
-  /* Hiệu ứng đổ bóng và viền khi hover sáng hơn */
-  box-shadow: 0 20px 60px rgba(30,144,255,0.35); /* Xanh Dodger Blue - Sáng hơn */
-  border-color: rgba(30,144,255,0.5); /* Xanh Dodger Blue - Sáng hơn */
+  box-shadow: 0 20px 60px rgba(30,144,255,0.35);
+  border-color: rgba(30,144,255,0.5);
 }
 
 .imageContainer {
@@ -136,7 +133,6 @@ html, body {
   margin-bottom: 15px;
   border-radius: 16px;
   overflow: hidden;
-  /* Đảm bảo nền chứa ảnh vẫn đủ tối */
   background: linear-gradient(45deg,#181818,#282828);
 }
 
@@ -158,8 +154,7 @@ html, body {
   right: 0;
   bottom: 0;
   left: 0;
-  /* Lớp phủ ảnh khi hover sáng hơn để chữ "Xem chi tiết" rõ nét */
-  background: linear-gradient(45deg, rgba(30,144,255,0.7), rgba(65,105,225,0.7)); /* Xanh Dodger Blue sang Xanh Royal Blue */
+  background: linear-gradient(45deg, rgba(30,144,255,0.7), rgba(65,105,225,0.7));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -178,7 +173,6 @@ html, body {
   text-transform: uppercase;
   letter-spacing: 1px;
   padding: 8px 16px; 
-  /* Có thể làm đậm nền chữ hơn một chút để tăng tương phản */
   background: rgba(0, 0, 0, 0.5); 
   border-radius: 4px; 
 }
@@ -213,11 +207,11 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 700;
-  color: #ffffff; /* Giữ màu chữ trắng cho tên sản phẩm */
+  color: #ffffff;
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
-/* Đánh giá (rating) */
+
 .rating {
   display: flex;
   align-items: center;
@@ -233,14 +227,14 @@ html, body {
 .star {
   width: 16px;
   height: 16px;
-  color: #ffd700; /* Màu vàng cho ngôi sao đầy */
+  color: #ffd700;
   fill: currentColor;
 }
 
 .emptyStar {
   width: 16px;
   height: 16px;
-  color: #666; /* Màu xám cho ngôi sao rỗng */
+  color: #666;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.5;
@@ -262,33 +256,31 @@ html, body {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 15px;
-  min-height: 70px; /* Giữ nguyên chiều cao để tránh xô lệch */
+  min-height: 70px;
   align-items: flex-start;
 }
 
 .specTag {
-  /* Thẻ thông số sáng hơn và đường viền rõ nét hơn */
-  background: linear-gradient(135deg, rgba(30,144,255,0.25), rgba(30,144,255,0.15)); /* Xanh Dodger Blue - Sáng hơn */
-  color: #1E90FF; /* Xanh Dodger Blue - Sáng hơn */
+  background: linear-gradient(135deg, rgba(30,144,255,0.25), rgba(30,144,255,0.15));
+  color: #1E90FF;
   padding: 8px 14px;
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 600;
-  border: 1px solid rgba(30,144,255,0.45); /* Xanh Dodger Blue - Sáng hơn */
+  border: 1px solid rgba(30,144,255,0.45);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(30,144,255,0.18); /* Xanh Dodger Blue - Sáng hơn */
+  box-shadow: 0 2px 8px rgba(30,144,255,0.18);
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
 }
 
 .specTag:hover {
-  /* Hiệu ứng hover của thẻ thông số cũng sáng hơn */
-  background: linear-gradient(135deg, rgba(30,144,255,0.35), rgba(30,144,255,0.25)); /* Xanh Dodger Blue - Sáng hơn */
+  background: linear-gradient(135deg, rgba(30,144,255,0.35), rgba(30,144,255,0.25));
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(30,144,255,0.3); /* Xanh Dodger Blue - Sáng hơn */
-  border-color: rgba(30,144,255,0.7); /* Xanh Dodger Blue - Sáng hơn */
+  box-shadow: 0 4px 12px rgba(30,144,255,0.3);
+  border-color: rgba(30,144,255,0.7);
 }
 
 .priceSection {
@@ -304,9 +296,8 @@ html, body {
 .price {
   font-size: 1.5rem;
   font-weight: bold;
-  /* Giá sản phẩm rất quan trọng, cần nổi bật */
-  color: #6495ED; /* Xanh Cornflower Blue - Sáng hơn */
-  text-shadow: 0 2px 4px rgba(100,149,237,0.4); /* Xanh Cornflower Blue - Sáng hơn */
+  color: #6495ED;
+  text-shadow: 0 2px 4px rgba(100,149,237,0.4);
   line-height: 1.2;
 }
 
@@ -319,9 +310,8 @@ html, body {
 
 .buyBtn {
   flex: 1;
-  /* Nút mua ngay cần rất rõ ràng và mời gọi */
-  background: linear-gradient(45deg,#1E90FF,#4169E1); /* Xanh Dodger Blue sang Xanh Royal Blue - Sáng hơn */
-  color: #fff; /* Giữ màu chữ trắng */
+  background: linear-gradient(45deg,#1E90FF,#4169E1);
+  color: #fff;
   border: none;
   border-radius: 12px;
   padding: 14px 20px;
@@ -352,7 +342,7 @@ html, body {
 
 .buyBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(30,144,255,0.5); /* Xanh Dodger Blue - Sáng hơn */
+  box-shadow: 0 8px 25px rgba(30,144,255,0.5);
 }
 
 .buyBtn:hover::before {
@@ -403,7 +393,7 @@ html, body {
   color: #fff;
 }
 
-/* Responsive Design */
+
 @media (max-width: 1400px) {
   .productGrid {
     grid-template-columns: repeat(3, 1fr);

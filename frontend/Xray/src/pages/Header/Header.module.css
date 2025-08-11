@@ -1,4 +1,4 @@
-/* Header.module.css */
+
 
 .navbar {
   position: fixed;
@@ -38,7 +38,7 @@ body.mobile-menu-open {
   height: 60px;
 }
 
-/* Logo */
+
 .navLogo { 
   display: flex; 
   align-items: center; 
@@ -62,7 +62,7 @@ body.mobile-menu-open {
   filter: drop-shadow(0 4px 8px rgba(30,144,255,0.5));
 }
 
-/* Navigation Menu */
+
 .navMenu {
   display: flex;
   align-items: center;
@@ -111,14 +111,14 @@ body.mobile-menu-open {
     cursor: pointer;
 }
 
-/* Actions Container */
+
 .navActions {
   display: flex;
   align-items: center;
   gap: 15px;
 }
 
-/* Search Container */
+
 .searchContainer {
   position: relative;
 }
@@ -153,7 +153,7 @@ body.mobile-menu-open {
   height: 20px;
 }
 
-/* Search Expanded */
+
 .searchExpanded {
   position: absolute;
   top: 120%;
@@ -262,7 +262,7 @@ body.mobile-menu-open {
   color: rgba(255,255,255,0.6);
 }
 
-/* User Container */
+
 .userContainer {
   position: relative;
 }
@@ -355,7 +355,7 @@ body.mobile-menu-open {
   color: #1E90FF;
 }
 
-/* Cart Container */
+
 .cartContainer {
   position: relative;
 }
@@ -523,7 +523,7 @@ body.mobile-menu-open {
   transform: translateY(-2px);
 }
 
-/* Mobile Menu Button */
+
 .mobileMenuBtn {
   display: none;
   background: none;
@@ -569,7 +569,7 @@ body.mobile-menu-open {
   z-index: 1000;
 }
 
-/* Mobile Menu */
+
 .mobileMenu {
   position: fixed;
   top: 70px;
@@ -718,13 +718,13 @@ body.mobile-menu-open {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.8); /* Màu đen trong suốt */
-  backdrop-filter: blur(5px); /* Hiệu ứng blur */
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(5px);
   z-index: 998;
   animation: fadeIn 0.3s ease;
 }
 
-/* Background Elements */
+
 .bgElements {
   position: fixed;
   top: 0; 
@@ -766,7 +766,7 @@ body.mobile-menu-open {
   animation-delay: 4s;
 }
 
-/* Animations */
+
 @keyframes float {
   0%, 100% { 
     transform: translateY(0) rotate(0); 
@@ -810,7 +810,7 @@ body.mobile-menu-open {
   }
 }
 
-/* Responsive Design */
+
 @media (max-width: 768px) {
   .navContainer {
     padding: 0 20px;
@@ -893,7 +893,7 @@ body.mobile-menu-open {
   }
 }
 
-/* Custom Scrollbar for dropdowns */
+
 .searchDropdown::-webkit-scrollbar,
 .cartItems::-webkit-scrollbar {
   width: 4px;
@@ -916,7 +916,7 @@ body.mobile-menu-open {
   background: rgba(30,144,255,0.5);
 }
 
-/* Loading states */
+
 .searchBtn.loading svg,
 .userBtn.loading svg,
 .cartBtn.loading svg {
@@ -955,7 +955,7 @@ body.mobile-menu-open {
   
 }
 
-/* Hiệu ứng hover giống nút giỏ hàng và tìm kiếm */
+
 .avatarFallback:hover {
   background: linear-gradient(135deg, rgba(30,144,255,0.28), rgba(0,0,0,1));
   color: #1E90FF;

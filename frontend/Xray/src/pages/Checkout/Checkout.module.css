@@ -1,9 +1,7 @@
-/* Checkout Container */
 .checkoutContainer {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  /* Nền tối giống Home với gradient xanh nhẹ */
   background: linear-gradient(135deg, #0a0a0a 0%, #111111 20%, #0a0a1c 40%, #1a1a1a 60%, #0d0d1b 80%, #000000 100%);
   color: #fff;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -22,7 +20,6 @@
   padding: 0 1rem;
 }
 
-/* Header Section */
 .checkoutHeader {
   display: flex;
   justify-content: space-between;
@@ -37,7 +34,6 @@
   font-weight: 700;
   color: #fff;
   margin: 0;
-  /* Hiệu ứng neon giống Home */
   text-shadow: 
     0 0 10px rgba(30,144,255,0.3),
     0 0 20px rgba(30,144,255,0.3),
@@ -65,7 +61,6 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  /* Nền tối trong suốt với viền sáng */
   background: rgba(255,255,255,0.15);
   border: 1px solid rgba(30,144,255,0.3);
   border-radius: 0.5rem;
@@ -89,7 +84,7 @@
   height: 1rem;
 }
 
-/* Layout */
+
 .checkoutLayout {
   display: grid;
   grid-template-columns: 1fr 400px;
@@ -97,13 +92,11 @@
   align-items: start;
 }
 
-/* Form Styles */
+
 .checkoutForm {
-  /* Nền tối trong suốt giống card trong Home */
   background: linear-gradient(145deg, rgba(20,20,20,0.9), rgba(0,0,0,0.7));
   border-radius: 1rem;
   padding: 2rem;
-  /* Viền sáng và shadow */
   border: 1px solid rgba(30,144,255,0.15);
   backdrop-filter: blur(20px);
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
@@ -122,7 +115,6 @@
   font-weight: 600;
   color: #fff;
   margin-bottom: 1rem;
-  /* Text shadow nhẹ cho section title */
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
@@ -140,7 +132,6 @@
 .formTextarea {
   width: 100%;
   padding: 0.875rem;
-  /* Nền tối cho input với viền sáng */
   background: rgba(255,255,255,0.1);
   border: 1px solid rgba(30,144,255,0.3);
   border-radius: 0.5rem;
@@ -180,7 +171,7 @@
   margin-top: 0.25rem;
 }
 
-/* Payment Options */
+
 .paymentOptions {
   display: flex;
   flex-direction: column;
@@ -192,7 +183,6 @@
   align-items: flex-start;
   gap: 1rem;
   padding: 1rem;
-  /* Nền tối cho payment option */
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(30,144,255,0.2);
   border-radius: 0.5rem;
@@ -240,14 +230,13 @@
   font-size: 0.875rem;
 }
 
-/* Order Summary */
+
 .orderSummary {
   position: sticky;
   top: 2rem;
 }
 
 .summaryCard {
-  /* Giống form style */
   background: linear-gradient(145deg, rgba(20,20,20,0.9), rgba(0,0,0,0.7));
   border-radius: 1rem;
   padding: 1.5rem;
@@ -263,8 +252,6 @@
   margin-bottom: 1.5rem;
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
-
-/* Order Items */
 .orderItems {
   margin-bottom: 1.5rem;
 }
@@ -288,7 +275,6 @@
   border-radius: 0.5rem;
   overflow: hidden;
   flex-shrink: 0;
-  /* Nền tối cho container ảnh */
   background: linear-gradient(45deg,#181818,#282828);
 }
 
@@ -302,7 +288,6 @@
   position: absolute;
   top: -8px;
   right: -8px;
-  /* Màu xanh sáng cho quantity badge */
   background: linear-gradient(45deg,#1E90FF,#4169E1);
   color: white;
   border-radius: 50%;
@@ -338,7 +323,6 @@
 
 .itemSpecsSmall span {
   font-size: 0.75rem;
-  /* Spec tags giống Home */
   background: linear-gradient(135deg, rgba(30,144,255,0.25), rgba(30,144,255,0.15));
   color: #1E90FF;
   padding: 0.125rem 0.5rem;
@@ -354,7 +338,7 @@
   text-shadow: 0 1px 2px rgba(100,149,237,0.3);
 }
 
-/* Summary Calculations */
+
 .summaryCalculations {
   border-top: 1px solid rgba(30,144,255,0.1);
   padding-top: 1rem;
@@ -397,7 +381,7 @@
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
-/* Place Order Button */
+
 .placeOrderBtn {
   width: 100%;
   display: flex;
@@ -405,7 +389,6 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 1rem;
-  /* Gradient xanh giống Home */
   background: linear-gradient(45deg,#1E90FF,#4169E1);
   color: white;
   border: none;
@@ -457,7 +440,7 @@
   transform: translateX(5px);
 }
 
-/* Loading Spinner */
+
 .spinner {
   width: 1rem;
   height: 1rem;
@@ -472,7 +455,7 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Success Page */
+
 .successContainer {
   max-width: 600px;
   margin: 0 auto;
@@ -485,7 +468,6 @@
   height: 80px;
   margin: 0 auto 2rem;
   color: #10B981;
-  /* Glow effect cho success icon */
   filter: drop-shadow(0 0 10px rgba(16,185,129,0.5));
 }
 
@@ -512,7 +494,6 @@
 }
 
 .orderInfo {
-  /* Nền tối giống các card khác */
   background: linear-gradient(145deg, rgba(20,20,20,0.9), rgba(0,0,0,0.7));
   border: 1px solid rgba(30,144,255,0.15);
   border-radius: 1rem;
@@ -546,7 +527,6 @@
 
 .primaryBtn {
   padding: 0.875rem 2rem;
-  /* Gradient xanh chính */
   background: linear-gradient(45deg,#1E90FF,#4169E1);
   color: white;
   border: none;
@@ -593,7 +573,7 @@
 
 
 
-/* Responsive Design */
+
 @media (max-width: 768px) {
   .checkoutContent {
     padding: 0 1rem;
