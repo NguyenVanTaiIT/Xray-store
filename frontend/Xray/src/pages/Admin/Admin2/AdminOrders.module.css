@@ -1,0 +1,36 @@
+.adminOrders {
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.orderTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.orderTable th, .orderTable td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.orderTable th {
+    background-color: #f0f0f0;
+}
+
+.orderStatus {
+    font-weight: bold;
+}
+
+.orderActions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.orderActions button {
+    margin-left: 10px;
+}

@@ -68,15 +68,15 @@ export default function Cart() {
     }
   };
 
-  const removeItem = async (productId) => {
+  const removeItem = async (itemId) => {
     if (!isAuthenticated) {
       toast.error('Vui lòng đăng nhập để xóa sản phẩm khỏi giỏ hàng');
       navigate('/login');
       return;
     }
     try {
-      console.log('Removing item with productId:', String(productId)); // Kiểm tra productId
-      await removeCartItem(String(productId)); // Ép thành chuỗi
+      console.log('Removing item with productId:', String(itemId)); // Kiểm tra productId
+      await removeCartItem(String(itemId)); // Ép thành chuỗi
       toast.success('Đã xóa sản phẩm khỏi giỏ hàng');
     } catch (err) {
       console.error('Remove item error:', err.response?.data || err.message);
@@ -107,8 +107,8 @@ export default function Cart() {
     );
   }, [cartItems]);
 
-  const handleProductClick = (product) => {
-    navigate(`/product-detail/${product._id}`);
+  const handleProductClick = (productId) => {
+    navigate(`/product-detail/${productId}`);
   };
 
   const handleCheckout = () => {
@@ -198,7 +198,7 @@ export default function Cart() {
                     key={item.productId}
                     className={`${styles.cartItem} ${!item.inStock || item.stockQuantity <= 0 ? styles.outOfStock : ''}`}
                   >
-                    <div className={styles.itemImage} onClick={() => handleProductClick(item)}>
+                    <div className={styles.itemImage} onClick={() => handleProductClick(item.productId._id || item.productId)}>
                       <img
                         src={item.image}
                         alt={item.name}
@@ -221,7 +221,7 @@ export default function Cart() {
 
                     <div className={styles.itemDetails}>
                       <div className={styles.itemInfo}>
-                        <h3 className={styles.itemName} onClick={() => handleProductClick(item)}>
+                        <h3 className={styles.itemName} onClick={() => handleProductClick(item.productId._id || item.productId)}>
                           {item.name}
                         </h3>
                         <div className={styles.itemSpecs}>
@@ -267,7 +267,7 @@ export default function Cart() {
                           </span>
                         </div>
 
-                        <button className={styles.removeBtn} onClick={() => removeItem(String(item.productId))}>
+                        <button className={styles.removeBtn} onClick={() => removeItem(String(item._id))}>
                           <svg viewBox="0 0 24 24" fill="none">
                             <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>

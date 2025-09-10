@@ -10,13 +10,19 @@ import Profile from './pages/Profile/Profile';
 import Cart from './pages/Cart/Cart';
 import Checkout from './pages/Checkout/Checkout';
 import OrderDetail from './pages/Orders/OrderDetail';
-import AdminOrders from './pages/Admin/AdminOrders';
-import AdminDashboard from './pages/Admin/AdminDashboard';
-import ProductManagement from './pages/Admin/ProductManagement';
-import UserManagement from './pages/Admin/UserManagement';
 import ErrorBoundary from './components/ErrorBoundary';
 import SearchResults from './components/SearchResults';
 import AboutUs from './pages/AboutUs/AboutUs';
+//Admin pages
+// import AdminOrders from './pages/Admin/AdminOrders';
+// import AdminDashboard from './pages/Admin/AdminDashboard';
+// import ProductManagement from './pages/Admin/ProductManagement';
+// import UserManagement from './pages/Admin/UserManagement';
+
+import AdminOrders from './pages/Admin/Admin2/AdminOrders';
+import AdminDashboard from './pages/Admin/Admin2/AdminDashboard';
+import ProductManagement from './pages/Admin/Admin2/ProductManagement';
+import UserManagement from './pages/Admin/Admin2/UserManagement';
 
 export default function AppRoutes() {
   const { isLoading } = useContext(UserContext);

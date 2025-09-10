@@ -22,9 +22,12 @@ export default function Home() {
   const fetchFeaturedProducts = async () => {
     setLoading(true);
     try {
-      const data = await fetchProducts();
+      // Truyền limit=4 khi gọi API
+      // ...existing code...
+const data = await fetchProducts(undefined, undefined, undefined, 1, 4);
+// ...existing code...
       console.log('Home - Fetched products:', data);
-      setProducts(Array.isArray(data.products) ? data.products.slice(0, 4) : []);
+      setProducts(Array.isArray(data.products) ? data.products : []);
     } catch (err) {
       console.error('Error fetching products:', err);
       setError(err.message || 'Không thể tải sản phẩm');

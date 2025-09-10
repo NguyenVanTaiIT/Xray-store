@@ -28,12 +28,10 @@ exports.getCart = async (req, res) => {
 
     const itemsRaw = await Promise.all(cart.items.map(async (item) => {
       const product = await Product.findById(item.productId).lean();
-      if (!product) {
-        console.warn(`Product ${item.productId} not found, skipping`);
-        return null;
-      }
+      if (!product) return null;
       return {
-        productId: item.productId._id.toString(),
+        _id: item._id, // Thêm dòng này
+        productId: item.productId._id ? item.productId._id.toString() : item.productId.toString(),
         name: item.name || product.name,
         image: item.image || product.image,
         price: item.price || product.price,
@@ -44,9 +42,7 @@ exports.getCart = async (req, res) => {
       };
     }));
 
-    const items = itemsRaw.filter(Boolean); // loại null
-    console.log(`Fetched cart with ${items.length} items, totalPrice: ${cart.totalPrice}`);
-    subsegment?.close();
+    const items = itemsRaw.filter(Boolean);
     res.status(200).json({ items, totalPrice: cart.totalPrice });
   } catch (err) {
     console.error('Error fetching cart:', {
@@ -279,12 +275,12 @@ exports.removeCartItem = async (req, res) => {
   const subsegment = segment ? segment.addNewSubsegment('MongoDB Query - RemoveCartItem') : null;
   const session = await mongoose.startSession();
   session.startTransaction();
+  const userId = req.user.userId; // <-- Đã thêm dòng này
   try {
-    const userId = req.user.userId;
-    const { productId } = req.params;
-    console.log(`Removing cart item for userId: ${userId}, productId: ${productId}, url: ${req.originalUrl}`);
+    const { itemId } = req.params;
+    console.log(`Removing cart item for userId: ${userId}, itemId: ${itemId}, url: ${req.originalUrl}`);
 
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
+    if (!mongoose.Types.ObjectId.isValid(itemId)) {
       subsegment?.close(new Error('Invalid product ID'));
       await session.abortTransaction();
       session.endSession();
@@ -299,7 +295,7 @@ exports.removeCartItem = async (req, res) => {
       return res.status(404).json({ message: 'Giỏ hàng không tồn tại' });
     }
 
-    const itemIndex = cart.items.findIndex(item => String(item.productId) === productId);
+    const itemIndex = cart.items.findIndex(item => String(item._id) === itemId);
     if (itemIndex === -1) {
       subsegment?.close(new Error('Item not found'));
       await session.abortTransaction();
@@ -309,8 +305,11 @@ exports.removeCartItem = async (req, res) => {
 
     const item = cart.items[itemIndex];
     await Product.findByIdAndUpdate(
-      productId,
-      { $inc: { stockQuantity: item.quantity }, $set: { inStock: { $gt: ['$stockQuantity', 0] } } },
+      item.productId,
+      {
+        $inc: { stockQuantity: item.quantity },
+        inStock: true // hoặc tự động set lại sau khi cập nhật stockQuantity nếu cần
+      },
       { session }
     );
     cart.items.splice(itemIndex, 1);
@@ -364,7 +363,10 @@ exports.clearCart = async (req, res) => {
     for (const item of cart.items) {
       await Product.findByIdAndUpdate(
         item.productId,
-        { $inc: { stockQuantity: item.quantity }, $set: { inStock: { $gt: ['$stockQuantity', 0] } } },
+        {
+          $inc: { stockQuantity: item.quantity },
+          inStock: true // hoặc tự động set lại sau khi cập nhật stockQuantity nếu cần
+        },
         { session }
       );
     }

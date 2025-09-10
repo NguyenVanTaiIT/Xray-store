@@ -1,0 +1,39 @@
+.productManagement {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.productList {
+    margin-top: 20px;
+    overflow-x: auto;
+}
+
+.productItem {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    border-bottom: 1px solid #eaeaea;
+}
+
+.productItem:last-child {
+    border-bottom: none;
+}
+
+.productTitle {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.productActions {
+    display: flex;
+    gap: 10px;
+}
+
+.addProductButton {
+    margin-top: 20px;
+    align-self: flex-start;
+}

@@ -1,0 +1,31 @@
+/* Sidebar */
+.sidebar {
+    background: var(--bg-dark) !important;
+    color: var(--text-light) !important;
+    min-height: 100vh;
+  }
+  
+  .sidebar .ant-menu {
+    background: transparent !important;
+    color: var(--text-light) !important;
+  }
+  
+  .sidebar .ant-menu-item-selected {
+    background: linear-gradient(90deg, var(--primary), var(--primary-light)) !important;
+    color: #fff !important;
+  }
+  
+  /* Header & Footer */
+  .header {
+    background: var(--bg-darker) !important;
+    color: var(--text-light) !important;
+  }
+  
+  .footer {
+    background: var(--bg-darker) !important;
+    color: var(--text-muted) !important;
+    text-align: center;
+  }
+
+  
+  

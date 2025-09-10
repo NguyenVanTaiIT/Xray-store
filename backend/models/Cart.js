@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const cartItemSchema = new mongoose.Schema({
+  _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
   productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
   name: { type: String, required: true, trim: true },
   image: {

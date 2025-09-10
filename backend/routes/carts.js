@@ -27,7 +27,7 @@ const validateObjectId = (paramName) => (req, res, next) => {
   router.get('/', authMiddleware, getCart);
   router.post('/', authMiddleware, addToCart);
   router.post('/:productId/image', authMiddleware, upload.single('image'), uploadCartItemImage);
-  router.delete('/:productId', authMiddleware, validateObjectId('productId'), removeCartItem);
+  router.delete('/:itemId', authMiddleware, removeCartItem);
   router.put('/:productId', authMiddleware, validateObjectId('productId'), updateCartItem);
   router.delete('/', authMiddleware, clearCart);
 
