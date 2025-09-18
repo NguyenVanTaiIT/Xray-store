@@ -1,39 +1,26 @@
-import { BrowserRouter } from 'react-router-dom';
-import { UserProvider } from './contexts/UserContext';
-import { CartProvider } from './contexts/CartContext';
-import { ToastContainer } from 'react-toastify';
-import { ConfigProvider, theme } from 'antd';
+import { BrowserRouter } from "react-router-dom";
+import { UserProvider } from "./contexts/UserContext";
+import { CartProvider } from "./contexts/CartContext";
+import { ToastContainer } from "react-toastify";
+import { DarkModeProvider } from "./contexts/DarkModeContext";
 
-import 'react-toastify/dist/ReactToastify.css';
-import 'antd/dist/reset.css';
-import './styles/admin/adminTheme.css';   // import file tổng
+import "react-toastify/dist/ReactToastify.css";
+import "./styles/DarkTheme.css"; // global theme file
 
-import AppRoutes from './AppRoutes';
+import AppRoutes from "./AppRoutes";
 
 function App() {
   return (
-    <>
+    <DarkModeProvider>
       <ToastContainer position="top-right" autoClose={3000} />
       <BrowserRouter>
         <UserProvider>
           <CartProvider>
-            <ConfigProvider
-              theme={{
-                algorithm: theme.darkAlgorithm,
-                token: {
-                  colorPrimary: '#1E90FF',
-                  colorBgBase: '#0f172a',
-                  colorTextBase: '#ffffff',
-                  borderRadius: 8,
-                },
-              }}
-            >
-              <AppRoutes />
-            </ConfigProvider>
+            <AppRoutes />
           </CartProvider>
         </UserProvider>
       </BrowserRouter>
-    </>
+    </DarkModeProvider>
   );
 }
 

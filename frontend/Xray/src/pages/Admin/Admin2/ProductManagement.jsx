@@ -1,41 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../../../services/productService';
-import { uploadProductImage } from '../../../services/productService';
+import { fetchProducts, createProduct, updateProduct, deleteProduct, uploadProductImage } from '../../../services/productService';
 import { UserContext } from '../../../contexts/UserContext';
 import { toast } from 'react-toastify';
-import { 
-  Card, 
-  Table, 
-  Button, 
-  Modal, 
-  Form, 
-  Input, 
-  Select, 
-  Space, 
-  Tag, 
-  Image, 
-  Popconfirm,
-  Row,
-  Col,
-  Statistic,
-  Divider,
-  Upload,
-  message
-} from 'antd';
-import { 
-  PlusOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
-  ShoppingOutlined,
-  UploadOutlined,
-  EyeOutlined
-} from '@ant-design/icons';
 import AdminPanel from '../../../components/AdminPanel';
 import placeholderImage from '../../../assets/Placeholder.jpg';
-
-const { Option } = Select;
-const { TextArea } = Input;
+import styles from './ProductManagement.module.css';
 
 export default function ProductManagement() {
   const navigate = useNavigate();
@@ -43,9 +13,9 @@ export default function ProductManagement() {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [imageUploading, setImageUploading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [form] = Form.useForm();
+  const [formValues, setFormValues] = useState({});
+  const [imageUploading, setImageUploading] = useState(false);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -64,32 +34,29 @@ export default function ProductManagement() {
 
   const handleImageUpload = async (file) => {
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
-      message.error('Chỉ hỗ trợ định dạng JPG hoặc PNG');
-      return false;
+      toast.error('Chỉ hỗ trợ định dạng JPG hoặc PNG');
+      return;
     }
-
     if (file.size > 5 * 1024 * 1024) {
-      message.error('File quá lớn (tối đa 5MB)');
-      return false;
+      toast.error('File quá lớn (tối đa 5MB)');
+      return;
     }
 
     setImageUploading(true);
     try {
       const imageUrl = await uploadProductImage(file);
-      form.setFieldsValue({ image: imageUrl });
-      message.success('Tải ảnh lên thành công');
-      return false; // Prevent default upload
+      setFormValues(prev => ({ ...prev, image: imageUrl }));
+      toast.success('Tải ảnh lên thành công');
     } catch (err) {
-      message.error(err.message || 'Không thể tải ảnh lên');
-      return false;
+      toast.error(err.message || 'Không thể tải ảnh lên');
     } finally {
       setImageUploading(false);
     }
   };
 
-  const handleAddProduct = async (values) => {
+  const handleAddProduct = async () => {
     try {
-      const product = await createProduct(values);
+      const product = await createProduct(formValues);
       setProducts([...products, product]);
       toast.success('Thêm sản phẩm thành công');
       handleModalCancel();
@@ -98,11 +65,11 @@ export default function ProductManagement() {
     }
   };
 
-  const handleEditProduct = async (values) => {
+  const handleEditProduct = async () => {
     try {
       const response = await updateProduct(editingProduct._id, {
-        ...values,
-        stockQuantity: parseInt(values.stockQuantity) || 0,
+        ...formValues,
+        stockQuantity: parseInt(formValues.stockQuantity) || 0,
       });
       setProducts(products.map(p => p._id === editingProduct._id ? response : p));
       toast.success('Cập nhật sản phẩm thành công');
@@ -113,6 +80,7 @@ export default function ProductManagement() {
   };
 
   const handleDeleteProduct = async (id) => {
+    if (!window.confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
     try {
       await deleteProduct(id);
       setProducts(products.filter(p => p._id !== id));
@@ -124,7 +92,7 @@ export default function ProductManagement() {
 
   const handleEditClick = (product) => {
     setEditingProduct(product);
-    form.setFieldsValue({
+    setFormValues({
       ...product,
       specs: Array.isArray(product.specs) ? product.specs.join(', ') : product.specs
     });
@@ -134,117 +102,29 @@ export default function ProductManagement() {
   const handleModalCancel = () => {
     setIsModalVisible(false);
     setEditingProduct(null);
-    form.resetFields();
+    setFormValues({});
   };
 
-  const handleModalOk = async () => {
-    try {
-      const values = await form.validateFields();
-      if (editingProduct) {
-        await handleEditProduct(values);
-      } else {
-        await handleAddProduct(values);
-      }
-    } catch (err) {
-      console.error('Form validation failed:', err);
+  const handleSubmit = () => {
+    if (editingProduct) {
+      handleEditProduct();
+    } else {
+      handleAddProduct();
     }
   };
 
-  const columns = [
-    {
-      title: 'Sản phẩm',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text, record) => (
-        <Space>
-          <Image
-            width={50}
-            height={50}
-            src={record.image}
-            alt={text}
-            style={{ objectFit: 'cover', borderRadius: 4 }}
-            fallback={placeholderImage}
-            onError={(e) => {
-              e.target.src = placeholderImage;
-            }}
-          />
-          <div>
-            <div style={{ fontWeight: 'bold' }}>{text}</div>
-            <div style={{ fontSize: '12px', color: '#999' }}>{record.sku}</div>
-          </div>
-        </Space>
-      ),
-    },
-    {
-      title: 'Giá',
-      dataIndex: 'price',
-      key: 'price',
-      render: (price) => (
-        <span style={{ fontWeight: 'bold', color: '#cf1322' }}>
-          {Number(price).toLocaleString('vi-VN')}₫
-        </span>
-      ),
-    },
-    {
-      title: 'Danh mục',
-      dataIndex: 'category',
-      key: 'category',
-      render: (category) => <Tag color="blue">{category}</Tag>,
-    },
-    {
-      title: 'Thương hiệu',
-      dataIndex: 'brand',
-      key: 'brand',
-      render: (brand) => <Tag color="green">{brand}</Tag>,
-    },
-    {
-      title: 'Tồn kho',
-      dataIndex: 'stockQuantity',
-      key: 'stockQuantity',
-      render: (quantity) => (
-        <Tag color={quantity > 10 ? 'green' : quantity > 0 ? 'orange' : 'red'}>
-          {quantity}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Hành động',
-      key: 'action',
-      render: (_, record) => (
-        <Space size="middle">
-          <Button 
-            type="primary" 
-            icon={<EditOutlined />} 
-            size="small"
-            onClick={() => handleEditClick(record)}
-          >
-            Sửa
-          </Button>
-          <Popconfirm
-            title="Bạn có chắc muốn xóa sản phẩm này?"
-            onConfirm={() => handleDeleteProduct(record._id)}
-            okText="Có"
-            cancelText="Không"
-          >
-            <Button 
-              type="primary" 
-              danger 
-              icon={<DeleteOutlined />} 
-              size="small"
-            >
-              Xóa
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+  const getStockStatus = (quantity) => {
+    if (quantity === 0) return { text: 'Hết hàng', class: styles.outOfStock };
+    if (quantity <= 10) return { text: 'Sắp hết', class: styles.lowStock };
+    return { text: 'Còn hàng', class: styles.inStock };
+  };
 
   if (isLoading) {
     return (
       <AdminPanel title="Quản lý sản phẩm" subtitle="Đang tải danh sách sản phẩm...">
-        <div style={{ textAlign: 'center', padding: '50px' }}>
-          <div>Đang tải danh sách sản phẩm...</div>
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingSpinner}></div>
+          <div className={styles.loadingText}>Đang tải danh sách sản phẩm...</div>
         </div>
       </AdminPanel>
     );
@@ -256,278 +136,282 @@ export default function ProductManagement() {
       subtitle="Thêm, sửa, xóa và quản lý danh sách sản phẩm"
     >
       {/* Statistics */}
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Tổng sản phẩm"
-              value={products.length}
-              prefix={<ShoppingOutlined />}
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Còn hàng"
-              value={products.filter(p => p.stockQuantity > 0).length}
-              prefix={<ShoppingOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Sắp hết hàng"
-              value={products.filter(p => p.stockQuantity > 0 && p.stockQuantity <= 10).length}
-              prefix={<ShoppingOutlined />}
-              valueStyle={{ color: '#faad14' }}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="Hết hàng"
-              value={products.filter(p => p.stockQuantity === 0).length}
-              prefix={<ShoppingOutlined />}
-              valueStyle={{ color: '#cf1322' }}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      <Divider />
+      <div className={styles.statsRow}>
+        <div className={styles.card}>
+          <div className={styles.statItem}>
+            <span className={styles.statTitle}>Tổng sản phẩm</span>
+            <span className={styles.statValue}>{products.length}</span>
+          </div>
+        </div>
+        <div className={styles.card}>
+          <div className={styles.statItem}>
+            <span className={styles.statTitle}>Còn hàng</span>
+            <span className={`${styles.statValue} ${styles.statInStock}`}>
+              {products.filter(p => p.stockQuantity > 0).length}
+            </span>
+          </div>
+        </div>
+        <div className={styles.card}>
+          <div className={styles.statItem}>
+            <span className={styles.statTitle}>Sắp hết hàng</span>
+            <span className={`${styles.statValue} ${styles.statLowStock}`}>
+              {products.filter(p => p.stockQuantity > 0 && p.stockQuantity <= 10).length}
+            </span>
+          </div>
+        </div>
+        <div className={styles.card}>
+          <div className={styles.statItem}>
+            <span className={styles.statTitle}>Hết hàng</span>
+            <span className={`${styles.statValue} ${styles.statOutOfStock}`}>
+              {products.filter(p => p.stockQuantity === 0).length}
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* Products Table */}
-      <Card 
-        title="Danh sách sản phẩm" 
-        extra={
-          <Button 
-            icon={<PlusOutlined />} 
-            type="primary"
-            onClick={() => {
-              setEditingProduct(null);
-              form.resetFields();
-              setIsModalVisible(true);
-            }}
+      <div className={styles.card}>
+        <div className={styles.tableHeader}>
+          <h3 className={styles.tableTitle}>Danh sách sản phẩm</h3>
+          <button 
+            className={styles.addButton}
+            onClick={() => { setEditingProduct(null); setFormValues({}); setIsModalVisible(true); }}
           >
             Thêm sản phẩm
-          </Button>
-        }
-      >
-        <Table 
-          columns={columns} 
-          dataSource={products} 
-          rowKey="_id"
-          loading={isLoading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} sản phẩm`,
-          }}
-        />
-      </Card>
+          </button>
+        </div>
+        <div className={styles.tableWrapper}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Sản phẩm</th>
+                <th>Giá</th>
+                <th>Danh mục</th>
+                <th>Thương hiệu</th>
+                <th>Tồn kho</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map(record => {
+                const stockStatus = getStockStatus(record.stockQuantity);
+                return (
+                  <tr key={record._id}>
+                    <td>
+                      <div className={styles.productInfo}>
+                        <img
+                          src={record.image || placeholderImage}
+                          alt={record.name}
+                          className={styles.productImage}
+                          onError={(e) => { e.target.src = placeholderImage; }}
+                        />
+                        <div className={styles.productDetails}>
+                          <div className={styles.productName}>{record.name}</div>
+                          <div className={styles.productSku}>{record.sku}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={styles.productPrice}>
+                        {Number(record.price).toLocaleString('vi-VN')}₫
+                      </span>
+                    </td>
+                    <td className={styles.productCategory}>{record.category}</td>
+                    <td className={styles.productBrand}>{record.brand}</td>
+                    <td>
+                      <div className={styles.stockInfo}>
+                        <span className={styles.stockQuantity}>{record.stockQuantity}</span>
+                        <span className={`${styles.stockStatus} ${stockStatus.class}`}>
+                          {stockStatus.text}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className={styles.actionButtons}>
+                        <button 
+                          className={styles.editBtn}
+                          onClick={() => handleEditClick(record)}
+                        >
+                          Sửa
+                        </button>
+                        <button 
+                          className={styles.deleteBtn}
+                          onClick={() => handleDeleteProduct(record._id)}
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Add/Edit Product Modal */}
-      <Modal
-        title={editingProduct ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
-        open={isModalVisible}
-        onOk={handleModalOk}
-        onCancel={handleModalCancel}
-        width={800}
-        okText={editingProduct ? "Cập nhật" : "Thêm sản phẩm"}
-        cancelText="Hủy"
-        confirmLoading={imageUploading}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          name="productForm"
-        >
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="Tên sản phẩm"
-                name="name"
-                rules={[{ required: true, message: 'Vui lòng nhập tên sản phẩm!' }]}
-              >
-                <Input placeholder="Nhập tên sản phẩm" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="Giá (VNĐ)"
-                name="price"
-                rules={[{ required: true, message: 'Vui lòng nhập giá sản phẩm!' }]}
-              >
-                <Input type="number" placeholder="Nhập giá sản phẩm" min="0" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item
-            label="Ảnh sản phẩm"
-            name="image"
-            rules={[{ required: true, message: 'Vui lòng tải ảnh sản phẩm!' }]}
-          >
-            <Upload
-              beforeUpload={handleImageUpload}
-              showUploadList={false}
-              accept="image/jpeg,image/png"
-            >
-              <Button icon={<UploadOutlined />} loading={imageUploading}>
-                {imageUploading ? 'Đang tải...' : 'Tải ảnh lên'}
-              </Button>
-            </Upload>
-            {form.getFieldValue('image') && (
-              <div style={{ marginTop: 8 }}>
-                <Image
-                  width={100}
-                  height={100}
-                  src={form.getFieldValue('image')}
-                  alt="Preview"
-                  style={{ objectFit: 'cover', borderRadius: 4 }}
-                  fallback={placeholderImage}
-                  onError={(e) => {
-                    e.target.src = placeholderImage;
-                  }}
+      {isModalVisible && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>
+                {editingProduct ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
+              </h3>
+              <button className={styles.closeButton} onClick={handleModalCancel}>×</button>
+            </div>
+            <form className={styles.form}>
+              <div className={styles.formGrid}>
+                <input
+                  className={styles.formInput}
+                  type="text"
+                  placeholder="Tên sản phẩm"
+                  value={formValues.name || ""}
+                  onChange={(e) => setFormValues({ ...formValues, name: e.target.value })}
+                />
+                <input
+                  className={styles.formInput}
+                  type="number"
+                  placeholder="Giá (VNĐ)"
+                  value={formValues.price || ""}
+                  onChange={(e) => setFormValues({ ...formValues, price: e.target.value })}
+                />
+                <input
+                  className={styles.formInput}
+                  type="text"
+                  placeholder="Danh mục"
+                  value={formValues.category || ""}
+                  onChange={(e) => setFormValues({ ...formValues, category: e.target.value })}
+                />
+                <input
+                  className={styles.formInput}
+                  type="text"
+                  placeholder="Thương hiệu"
+                  value={formValues.brand || ""}
+                  onChange={(e) => setFormValues({ ...formValues, brand: e.target.value })}
+                />
+                <input
+                  className={styles.formInput}
+                  type="text"
+                  placeholder="SKU"
+                  value={formValues.sku || ""}
+                  onChange={(e) => setFormValues({ ...formValues, sku: e.target.value })}
+                />
+                <input
+                  className={styles.formInput}
+                  type="number"
+                  placeholder="Số lượng tồn kho"
+                  value={formValues.stockQuantity || ""}
+                  onChange={(e) => setFormValues({ ...formValues, stockQuantity: e.target.value })}
                 />
               </div>
-            )}
-          </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item
-                label="Danh mục"
-                name="category"
-                rules={[{ required: true, message: 'Vui lòng chọn danh mục!' }]}
-              >
-                <Select placeholder="Chọn danh mục">
-                  <Option value="gaming">Gaming</Option>
-                  <Option value="office">Office</Option>
-                  <Option value="ultrabook">Ultrabook</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                label="Thương hiệu"
-                name="brand"
-                rules={[{ required: true, message: 'Vui lòng chọn thương hiệu!' }]}
-              >
-                <Select placeholder="Chọn thương hiệu">
-                  <Option value="asus">Asus</Option>
-                  <Option value="msi">MSI</Option>
-                  <Option value="acer">Acer</Option>
-                  <Option value="lenovo">Lenovo</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                label="SKU"
-                name="sku"
-                rules={[{ required: true, message: 'Vui lòng nhập SKU!' }]}
-              >
-                <Input placeholder="BRAND-CATEGORY-XXXX" />
-              </Form.Item>
-            </Col>
-          </Row>
+              <div className={styles.formGrid}>
+                <input
+                  className={styles.formInput}
+                  type="text"
+                  placeholder="Bảo hành"
+                  value={formValues.warranty || ""}
+                  onChange={(e) => setFormValues({ ...formValues, warranty: e.target.value })}
+                />
+                <input
+                  className={styles.formInput}
+                  type="text"
+                  placeholder="Bộ nhớ"
+                  value={formValues.storage || ""}
+                  onChange={(e) => setFormValues({ ...formValues, storage: e.target.value })}
+                />
+                <input
+                  className={styles.formInput}
+                  type="text"
+                  placeholder="Màn hình"
+                  value={formValues.display || ""}
+                  onChange={(e) => setFormValues({ ...formValues, display: e.target.value })}
+                />
+                <input
+                  className={styles.formInput}
+                  type="text"
+                  placeholder="Hệ điều hành"
+                  value={formValues.os || ""}
+                  onChange={(e) => setFormValues({ ...formValues, os: e.target.value })}
+                />
+                <input
+                  className={styles.formInput}
+                  type="text"
+                  placeholder="Pin"
+                  value={formValues.battery || ""}
+                  onChange={(e) => setFormValues({ ...formValues, battery: e.target.value })}
+                />
+                <input
+                  className={styles.formInput}
+                  type="text"
+                  placeholder="Trọng lượng"
+                  value={formValues.weight || ""}
+                  onChange={(e) => setFormValues({ ...formValues, weight: e.target.value })}
+                />
+              </div>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="Số lượng tồn kho"
-                name="stockQuantity"
-                rules={[{ required: true, message: 'Vui lòng nhập số lượng!' }]}
-              >
-                <Input type="number" placeholder="Nhập số lượng" min="0" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="Bảo hành"
-                name="warranty"
-              >
-                <Input placeholder="VD: 24 tháng" />
-              </Form.Item>
-            </Col>
-          </Row>
+              <input
+                className={styles.formInput}
+                type="text"
+                placeholder="Thông số kỹ thuật (phân cách bằng dấu phẩy)"
+                value={formValues.specs || ""}
+                onChange={(e) => setFormValues({ ...formValues, specs: e.target.value })}
+              />
+              
+              <textarea
+                className={styles.formTextarea}
+                placeholder="Mô tả tính năng"
+                value={formValues.featuresDescription || ""}
+                onChange={(e) => setFormValues({ ...formValues, featuresDescription: e.target.value })}
+              />
+              
+              <textarea
+                className={styles.formTextarea}
+                placeholder="Mô tả sản phẩm"
+                value={formValues.description || ""}
+                onChange={(e) => setFormValues({ ...formValues, description: e.target.value })}
+              />
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="Bộ nhớ"
-                name="storage"
-              >
-                <Input placeholder="VD: 512GB SSD" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="Màn hình"
-                name="display"
-                rules={[{ required: true, message: 'Vui lòng nhập thông tin màn hình!' }]}
-              >
-                <Input placeholder="VD: 15.6 inch FHD" />
-              </Form.Item>
-            </Col>
-          </Row>
+              <div className={styles.imageUpload}>
+                <input
+                  className={styles.fileInput}
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  onChange={(e) => handleImageUpload(e.target.files[0])}
+                  disabled={imageUploading}
+                />
+                {imageUploading && <div className={styles.uploadingText}>Đang tải...</div>}
+                {formValues.image && (
+                  <img
+                    src={formValues.image}
+                    alt="Preview"
+                    className={styles.previewImage}
+                    onError={(e) => { e.target.src = placeholderImage; }}
+                  />
+                )}
+              </div>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                label="Hệ điều hành"
-                name="os"
-              >
-                <Input placeholder="VD: Windows 11" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                label="Pin"
-                name="battery"
-              >
-                <Input placeholder="VD: 3-cell, 45Wh" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item
-            label="Trọng lượng"
-            name="weight"
-          >
-            <Input placeholder="VD: 1.8kg" />
-          </Form.Item>
-
-          <Form.Item
-            label="Thông số kỹ thuật"
-            name="specs"
-            rules={[{ required: true, message: 'Vui lòng nhập thông số kỹ thuật!' }]}
-          >
-            <Input placeholder="Thông số kỹ thuật (phân cách bằng dấu phẩy)" />
-          </Form.Item>
-
-          <Form.Item
-            label="Mô tả tính năng"
-            name="featuresDescription"
-          >
-            <TextArea rows={3} placeholder="Mô tả các tính năng nổi bật của sản phẩm" />
-          </Form.Item>
-
-          <Form.Item
-            label="Mô tả sản phẩm"
-            name="description"
-          >
-            <TextArea rows={4} placeholder="Mô tả chi tiết về sản phẩm" />
-          </Form.Item>
-        </Form>
-      </Modal>
+              <div className={styles.modalActions}>
+                <button 
+                  type="button" 
+                  className={styles.submitButton}
+                  onClick={handleSubmit}
+                >
+                  {editingProduct ? "Cập nhật" : "Thêm sản phẩm"}
+                </button>
+                <button 
+                  type="button" 
+                  className={styles.cancelButton}
+                  onClick={handleModalCancel}
+                >
+                  Hủy
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AdminPanel>
   );
 }

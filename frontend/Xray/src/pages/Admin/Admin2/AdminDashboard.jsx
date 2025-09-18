@@ -3,18 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { UserContext } from '../../../contexts/UserContext';
 import { getDashboardStats } from '../../../services/adminService';
 import { toast } from 'react-toastify';
-import { Card, Row, Col, Statistic, Button, Space } from 'antd';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, PieChart, Pie, Cell 
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  BarChart, Bar, PieChart, Pie, Cell
 } from 'recharts';
-import { 
-  ShoppingCartOutlined, 
-  DollarOutlined, 
-  UserOutlined, 
-  ClockCircleOutlined,
-  PieChartOutlined
-} from '@ant-design/icons';
 import AdminPanel from '../../../components/AdminPanel';
+import styles from './AdminDashboard.module.css';
 
 // Sample data for charts
 const salesData = [
@@ -42,7 +36,7 @@ export default function AdminDashboard() {
     pendingOrders: 0
   });
   const [isLoading, setIsLoading] = useState(false);
-  
+
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'admin') {
       toast.error('Bạn không có quyền truy cập trang này');
@@ -82,12 +76,11 @@ export default function AdminDashboard() {
   if (isLoading) {
     return (
       <AdminPanel title="Admin Dashboard">
-  <div className="loadingContainer">
-    <div className="loadingSpinner"></div>
-    <div className="loadingText">Đang tải thống kê...</div>
-  </div>
-</AdminPanel>
-
+        <div className={styles.loadingContainer}>
+          <div className={styles.loadingSpinner}></div>
+          <div className={styles.loadingText}>Đang tải thống kê...</div>
+        </div>
+      </AdminPanel>
     );
   }
 
@@ -99,139 +92,109 @@ export default function AdminDashboard() {
       backPath="/"
     >
       {/* Statistics Cards */}
-      <Row gutter={16} className="statsRow">
-        <Col span={6}>
-          <Card className="darkCard">
-            <Statistic
-              title="Tổng số đơn hàng"
-              value={stats.totalOrders}
-              prefix={<ShoppingCartOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card className="darkCard">
-            <Statistic
-              title="Tổng doanh thu"
-              value={stats.totalRevenue}
-              prefix={<DollarOutlined />}
-              suffix="₫"
-              formatter={(value) => Number(value).toLocaleString('vi-VN')}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card className="darkCard">
-            <Statistic
-              title="Tổng số người dùng"
-              value={stats.totalUsers}
-              prefix={<UserOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card className="darkCard">
-            <Statistic
-              title="Đơn hàng chờ xử lý"
-              value={stats.pendingOrders}
-              prefix={<ClockCircleOutlined />}
-            />
-          </Card>
-        </Col>
-      </Row>
+      <div className={styles.statsRow}>
+        <div className={styles.card}>
+          <div className={styles.statItem}>
+            <span className={styles.statTitle}>Tổng số đơn hàng</span>
+            <span className={styles.statValue}>{stats.totalOrders}</span>
+          </div>
+        </div>
+        <div className={styles.card}>
+          <div className={styles.statItem}>
+            <span className={styles.statTitle}>Tổng doanh thu</span>
+            <span className={styles.statValue}>
+              {Number(stats.totalRevenue).toLocaleString('vi-VN')}₫
+            </span>
+          </div>
+        </div>
+        <div className={styles.card}>
+          <div className={styles.statItem}>
+            <span className={styles.statTitle}>Tổng số người dùng</span>
+            <span className={styles.statValue}>{stats.totalUsers}</span>
+          </div>
+        </div>
+        <div className={styles.card}>
+          <div className={styles.statItem}>
+            <span className={styles.statTitle}>Đơn hàng chờ xử lý</span>
+            <span className={styles.statValue}>{stats.pendingOrders}</span>
+          </div>
+        </div>
+      </div>
 
       {/* Charts Section */}
-      <Row gutter={16}>
-        <Col span={12}>
-          <Card className="darkCard">
-            <div className="chartTitle">Biểu đồ doanh thu theo tháng</div>
-            <LineChart width={500} height={300} data={salesData}>
-              <CartesianGrid stroke="rgba(255,255,255,0.1)" />
-              <XAxis dataKey="name" stroke="#fff" />
-              <YAxis stroke="#fff" />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1a1a2e', border: '1px solid #1E90FF', color: '#fff' }} 
-                formatter={(value) => Number(value).toLocaleString('vi-VN') + '₫'} 
-              />
-              <Legend wrapperStyle={{ color: '#fff' }} />
-              <Line type="monotone" dataKey="revenue" stroke="#1E90FF" strokeWidth={2} />
-            </LineChart>
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card className="darkCard">
-            <div className="chartTitle">Số lượng đơn hàng theo tháng</div>
-            <BarChart width={500} height={300} data={salesData}>
-              <CartesianGrid stroke="rgba(255,255,255,0.1)" />
-              <XAxis dataKey="name" stroke="#fff" />
-              <YAxis stroke="#fff" />
-              <Tooltip contentStyle={{ backgroundColor: '#1a1a2e', border: '1px solid #1E90FF', color: '#fff' }} />
-              <Legend wrapperStyle={{ color: '#fff' }} />
-              <Bar dataKey="orders" fill="#82ca9d" />
-            </BarChart>
-          </Card>
-        </Col>
-      </Row>
+      <div className={styles.chartsRow}>
+        <div className={styles.card}>
+          <div className={styles.chartTitle}>Biểu đồ doanh thu theo tháng</div>
+          <LineChart width={500} height={300} data={salesData}>
+            <CartesianGrid stroke="rgba(255,255,255,0.1)" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip formatter={(value) => Number(value).toLocaleString('vi-VN') + '₫'} />
+            <Legend />
+            <Line type="monotone" dataKey="revenue" stroke="#1E90FF" strokeWidth={2} />
+          </LineChart>
+        </div>
 
-      <Row gutter={16}>
-        <Col span={12}>
-          <Card className="darkCard">
-            <div className="chartTitle">Phân bổ sản phẩm theo danh mục</div>
-            <PieChart width={500} height={300}>
-              <Pie
-                data={categoryData}
-                cx={250}
-                cy={150}
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {categoryData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={{ backgroundColor: '#1a1a2e', border: '1px solid #1E90FF', color: '#fff' }} />
-              <Legend wrapperStyle={{ color: '#fff' }} />
-            </PieChart>
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card className="darkCard">
-            <div className="chartTitle">Quản lý hệ thống</div>
-            <Space direction="vertical" size="middle" className="managementButtons">
-              <Button 
-                type="primary" 
-                size="large" 
-                icon={<ShoppingCartOutlined />}
-                onClick={() => navigate('/admin/orders')}
-                block
-              >
-                Quản lý đơn hàng
-              </Button>
-              <Button 
-                type="primary" 
-                size="large" 
-                icon={<PieChartOutlined />}
-                onClick={() => navigate('/admin/products')}
-                block
-              >
-                Quản lý sản phẩm
-              </Button>
-              <Button 
-                type="primary" 
-                size="large" 
-                icon={<UserOutlined />}
-                onClick={() => navigate('/admin/users')}
-                block
-              >
-                Quản lý người dùng
-              </Button>
-            </Space>
-          </Card>
-        </Col>
-      </Row>
+        <div className={styles.card}>
+          <div className={styles.chartTitle}>Số lượng đơn hàng theo tháng</div>
+          <BarChart width={500} height={300} data={salesData}>
+            <CartesianGrid stroke="rgba(255,255,255,0.1)" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="orders" fill="#82ca9d" />
+          </BarChart>
+        </div>
+      </div>
+
+      <div className={styles.chartsRow}>
+        <div className={styles.card}>
+          <div className={styles.chartTitle}>Phân bố sản phẩm theo danh mục</div>
+          <PieChart width={500} height={300}>
+            <Pie
+              data={categoryData}
+              cx={250}
+              cy={150}
+              labelLine={false}
+              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+            >
+              {categoryData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </div>
+
+        <div className={styles.card}>
+          <div className={styles.chartTitle}>Quản lý hệ thống</div>
+          <div className={styles.managementButtons}>
+            <button 
+              className={styles.managementBtn}
+              onClick={() => navigate('/admin/orders')}
+            >
+              Quản lý đơn hàng
+            </button>
+            <button 
+              className={styles.managementBtn}
+              onClick={() => navigate('/admin/products')}
+            >
+              Quản lý sản phẩm
+            </button>
+            <button 
+              className={styles.managementBtn}
+              onClick={() => navigate('/admin/users')}
+            >
+              Quản lý người dùng
+            </button>
+          </div>
+        </div>
+      </div>
     </AdminPanel>
   );
 }

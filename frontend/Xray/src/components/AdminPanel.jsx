@@ -1,15 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button } from 'antd';
-import {
-  BarChartOutlined,
-  ShoppingCartOutlined,
-  PieChartOutlined,
-  UserOutlined,
-  ArrowLeftOutlined
-} from '@ant-design/icons';
-
-const { Header, Content, Footer, Sider } = Layout;
+import DarkModeToggle from './DarkModeToggle';
+import styles from './AdminPanel.module.css';
 
 const AdminPanel = ({ children, title, showBackButton = true, backPath = '/admin' }) => {
   const navigate = useNavigate();
@@ -27,84 +19,78 @@ const AdminPanel = ({ children, title, showBackButton = true, backPath = '/admin
   const menuItems = [
     {
       key: '1',
-      icon: <BarChartOutlined />,
       label: 'Dashboard',
       onClick: () => navigate('/admin')
     },
     {
       key: '2',
-      icon: <ShoppingCartOutlined />,
       label: 'Đơn hàng',
       onClick: () => navigate('/admin/orders')
     },
     {
       key: '3',
-      icon: <PieChartOutlined />,
       label: 'Sản phẩm',
       onClick: () => navigate('/admin/products')
     },
     {
       key: '4',
-      icon: <UserOutlined />,
       label: 'Người dùng',
       onClick: () => navigate('/admin/users')
     }
   ];
 
   return (
-    <Layout className="layoutTransition">
+    <div className={styles.layoutTransition}>
       {/* Sidebar cố định */}
-      <Sider
-        width={200}
-        className="sidebar"
-        style={{
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          height: '100vh',
-          overflow: 'auto',
-        }}
-      >
-        <div className="sidebarHeader">
-          <h3 className="sidebarTitle">Admin Panel</h3>
+      <aside className={styles.sidebar}>
+        <div className={styles.sidebarHeader}>
+          <h3 className={styles.sidebarTitle}>Admin Panel</h3>
         </div>
-        <Menu
-          mode="inline"
-          selectedKeys={[getSelectedKey()]}
-          items={menuItems}
-        />
-      </Sider>
+        <ul className={styles.menu}>
+          {menuItems.map(item => (
+            <li
+              key={item.key}
+              className={`${styles.menuItem} ${getSelectedKey() === item.key ? styles.active : ''}`}
+              onClick={item.onClick}
+            >
+              {item.label}
+            </li>
+          ))}
+        </ul>
+      </aside>
 
       {/* Layout chính, chừa khoảng trống sidebar */}
-      <Layout style={{ marginLeft: 200, minHeight: '100vh' }}>
-        <Header className="header" style={{ position: 'sticky', top: 0, zIndex: 10 }}>
-          <div className="headerContent" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h1 className="headerTitle" style={{ margin: 0 }}>{title}</h1>
-            {showBackButton && (
-              <Button
-                icon={<ArrowLeftOutlined />}
-                onClick={() => navigate(backPath)}
-                className="backButton"
-              >
-                {backPath === '/admin' ? 'Dashboard' : 'Quay lại'}
-              </Button>
-            )}
+      <div className={styles.mainLayout}>
+        <header className={styles.header}>
+          <div className={styles.headerContent}>
+            <h1 className={styles.headerTitle}>{title}</h1>
+            
+            {/* Header Actions */}
+            <div className={styles.headerActions}>
+              <DarkModeToggle />
+              {showBackButton && (
+                <button
+                  className={styles.backButton}
+                  onClick={() => navigate(backPath)}
+                >
+                  {backPath === '/admin' ? 'Dashboard' : 'Quay lại'}
+                </button>
+              )}
+            </div>
           </div>
-        </Header>
+        </header>
 
-
-        <Content className="content" style={{ padding: '16px', overflow: 'auto' }}>
-          <div className="contentInner">
+        <main className={styles.content}>
+          <div className={styles.contentInner}>
             {children}
           </div>
-        </Content>
+        </main>
 
-        <Footer className="footer">
-          Admin Dashboard ©2024 - Powered by React & Ant Design
-        </Footer>
-      </Layout>
-    </Layout>
+        <footer className={styles.footer}>
+          Admin Dashboard ©2024 - Powered by React
+        </footer>
+      </div>
+    </div>
   );
 };
 

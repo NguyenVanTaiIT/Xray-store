@@ -1,0 +1,258 @@
+/* Global Dark Theme Variables */
+:root {
+  /* Light Theme Colors */
+  --color-primary: #1E90FF;
+  --color-bg-base: #0f172a;
+  --color-text-base: #ffffff;
+  --border-radius: 8px;
+  
+  /* Light Theme Background Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  
+  /* Light Theme Text Colors */
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  
+  /* Light Theme Border Colors */
+  --border-primary: #e2e8f0;
+  --border-secondary: rgba(30, 144, 255, 0.1);
+  
+  /* Light Theme Shadow Colors */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 25px rgba(30, 144, 255, 0.15), 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Theme Colors */
+[data-theme="dark"] {
+  /* Dark Theme Background Colors */
+  --bg-primary: #1e293b;
+  --bg-secondary: #334155;
+  --bg-tertiary: #475569;
+  
+  /* Dark Theme Text Colors */
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  
+  /* Dark Theme Border Colors */
+  --border-primary: #475569;
+  --border-secondary: rgba(30, 144, 255, 0.3);
+  
+  /* Dark Theme Shadow Colors */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 8px 25px rgba(30, 144, 255, 0.25), 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Smooth transitions for theme switching */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+/* Body dark theme class */
+body.dark-theme {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Updated CSS Variables for existing components */
+
+/* AdminPanel Dark Theme Updates */
+[data-theme="dark"] .sidebar {
+  background-color: #0f172a;
+  border-right-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] .mainLayout {
+  background-color: var(--bg-primary);
+}
+
+[data-theme="dark"] .header {
+  background-color: var(--bg-secondary);
+  border-bottom-color: var(--border-primary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .headerTitle {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .content {
+  background-color: var(--bg-primary);
+}
+
+[data-theme="dark"] .footer {
+  background-color: #0f172a;
+  color: var(--text-secondary);
+}
+
+/* Card Dark Theme Updates */
+[data-theme="dark"] .card {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  border-color: var(--border-secondary);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="dark"] .card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .card::before {
+  background: linear-gradient(90deg, var(--color-primary), #00bcd4);
+}
+
+/* Statistics Dark Theme Updates */
+[data-theme="dark"] .statTitle {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .statValue {
+  color: var(--color-primary);
+  text-shadow: 0 2px 4px rgba(30, 144, 255, 0.3);
+}
+
+/* Chart Dark Theme Updates */
+[data-theme="dark"] .chartTitle {
+  color: var(--text-primary);
+  border-bottom-color: var(--border-secondary);
+}
+
+/* Table Dark Theme Updates */
+[data-theme="dark"] .table {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .table thead th {
+  background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+  color: var(--text-primary);
+  border-bottom-color: var(--border-secondary);
+}
+
+[data-theme="dark"] .table tbody td {
+  border-bottom-color: var(--border-primary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .table tbody tr:hover {
+  background-color: rgba(30, 144, 255, 0.1);
+}
+
+[data-theme="dark"] .tableHeader h3 {
+  color: var(--text-primary);
+}
+
+/* User Info Dark Theme Updates */
+[data-theme="dark"] .userName {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .userHandle {
+  color: var(--text-secondary);
+}
+
+/* Button Dark Theme Updates */
+[data-theme="dark"] .managementBtn,
+[data-theme="dark"] .editBtn,
+[data-theme="dark"] .deleteBtn,
+[data-theme="dark"] .addBtn,
+[data-theme="dark"] .updateBtn,
+[data-theme="dark"] .backButton {
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="dark"] .managementBtn:hover,
+[data-theme="dark"] .editBtn:hover,
+[data-theme="dark"] .deleteBtn:hover,
+[data-theme="dark"] .addBtn:hover,
+[data-theme="dark"] .updateBtn:hover,
+[data-theme="dark"] .backButton:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .cancelBtn {
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+}
+
+[data-theme="dark"] .cancelBtn:hover {
+  background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+  box-shadow: 0 8px 20px rgba(74, 85, 104, 0.4);
+}
+
+/* Modal Dark Theme Updates */
+[data-theme="dark"] .modal {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+[data-theme="dark"] .modalContent {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  border-color: var(--border-secondary);
+  color: var(--text-primary);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .modalContent h3 {
+  color: var(--text-primary);
+  border-bottom-color: var(--border-secondary);
+}
+
+/* Form Dark Theme Updates */
+[data-theme="dark"] .form input,
+[data-theme="dark"] .form select {
+  background-color: var(--bg-primary);
+  border-color: var(--border-primary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .form input:focus,
+[data-theme="dark"] .form select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(30, 144, 255, 0.2);
+  background-color: var(--bg-secondary);
+}
+
+[data-theme="dark"] .form input:disabled {
+  background-color: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .form input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Loading Dark Theme Updates */
+[data-theme="dark"] .loadingText {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .loadingSpinner {
+  border-color: rgba(30, 144, 255, 0.2);
+  border-top-color: var(--color-primary);
+}
+
+/* Role Tag Dark Theme Updates */
+[data-theme="dark"] .roleAdmin {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #92400e;
+  border-color: #fbbf24;
+}
+
+[data-theme="dark"] .roleUser {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #dbeafe;
+  border-color: #3b82f6;
+}
+
+/* Status Dark Theme Updates */
+[data-theme="dark"] .statusActive {
+  color: #10b981;
+}
+
+/* Modal Actions Dark Theme Updates */
+[data-theme="dark"] .modalActions {
+  border-top-color: var(--border-secondary);
+}

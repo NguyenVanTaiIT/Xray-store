@@ -1,0 +1,186 @@
+.toggleButton {
+  position: relative;
+  width: 60px;
+  height: 32px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.3s ease;
+  border-radius: 20px;
+}
+
+.toggleButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(30, 144, 255, 0.3);
+}
+
+.toggleButton:hover {
+  transform: scale(1.05);
+}
+
+.track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.light .track {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dark .track {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.thumb {
+  position: absolute;
+  top: 2px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.thumbLight {
+  left: 2px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.thumbDark {
+  left: 30px;
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sunIcon {
+  color: #f59e0b;
+  animation: rotate 8s linear infinite;
+}
+
+.moonIcon {
+  color: #60a5fa;
+  animation: float 3s ease-in-out infinite;
+}
+
+.backgroundIcons {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  z-index: 1;
+}
+
+.bgIcon {
+  width: 12px;
+  height: 12px;
+  transition: all 0.3s ease;
+}
+
+.bgSun {
+  color: rgba(245, 158, 11, 0.6);
+}
+
+.bgMoon {
+  color: rgba(96, 165, 250, 0.6);
+}
+
+.iconActive {
+  opacity: 0.8;
+  transform: scale(1);
+}
+
+.iconInactive {
+  opacity: 0.3;
+  transform: scale(0.8);
+}
+
+/* Animations */
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* Hover effects */
+.toggleButton:hover .thumb {
+  box-shadow: 
+    0 6px 12px rgba(0, 0, 0, 0.2),
+    0 3px 6px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.toggleButton:hover .sunIcon {
+  animation-duration: 2s;
+}
+
+.toggleButton:hover .moonIcon {
+  animation-duration: 1.5s;
+}
+
+/* Active state */
+.toggleButton:active .thumb {
+  transform: scale(0.95);
+}
+
+/* Ripple effect */
+.toggleButton::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(30, 144, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.toggleButton:active::after {
+  width: 80px;
+  height: 80px;
+  opacity: 0;
+}
